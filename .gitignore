@@ -1,0 +1,9 @@
+UEAudioDSPCollection.sln
+.vs/
+Binaries/
+DerivedDataCache/
+Intermediate/
+Plugins/AudioDSPCollection/Binaries/
+Plugins/AudioDSPCollection/Intermediate/
+Saved/
+Script/

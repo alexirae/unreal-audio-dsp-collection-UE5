@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "AudioDSPCollection",
+	"Description": "An Unreal plugin that contains a collection of audio realtime effects in 3 different flavors (SourceEffect, SubmixEffect, Metasound Node [only UE5])",
+	"Category": "Audio",
+	"CreatedBy": "Alex Perez San Elias",
+	"CreatedByURL": "https://github.com/alexirae",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "AudioDSPCollection",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "Metasound",
+			"Enabled": true
+		}
+	]
+}
