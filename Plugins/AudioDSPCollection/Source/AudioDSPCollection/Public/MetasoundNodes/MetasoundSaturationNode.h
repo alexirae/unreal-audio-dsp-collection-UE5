@@ -18,7 +18,17 @@ DECLARE_METASOUND_ENUM(DSPProcessing::ESaturationType, DSPProcessing::ESaturatio
 #define LOCTEXT_NAMESPACE "MetasoundStandardNodes_SaturationNode"
     DEFINE_METASOUND_ENUM_BEGIN(DSPProcessing::ESaturationType, FEnumESaturationType, "SaturationType")
         DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Tape,     LOCTEXT("TapeDescription", "Tape"),         LOCTEXT("TapeTT", "Tape Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Tape2, LOCTEXT("Tape2Description", "Tape2"), LOCTEXT("Tape2TT", "Tape Saturation (HQ)")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Overdrive, LOCTEXT("OverdriveDescription", "Overdrive"), LOCTEXT("OverdriveTT", "Overdrive Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Tube, LOCTEXT("TubeDescription", "Tube"), LOCTEXT("TubeTT", "Tube Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Tube2, LOCTEXT("Tube2Description", "Tube2"), LOCTEXT("Tube2TT", "Tube Saturation (HQ)")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Distortion, LOCTEXT("DistortionDescription", "Distortion"), LOCTEXT("DistortionTT", "Distortion Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Metal, LOCTEXT("MetalDescription", "Metal"), LOCTEXT("MetalTT", "Metal Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Fuzz, LOCTEXT("FuzzDescription", "Fuzz"), LOCTEXT("FuzzTT", "Fuzz Saturation")),
         DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::HardClip, LOCTEXT("HardClipDescription", "HardClip"), LOCTEXT("HardClipTT", "Hard Clip Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Foldback, LOCTEXT("FoldbackDescription", "Foldback"), LOCTEXT("FoldbackTT", "Foldback Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::HalfWaveRectifier, LOCTEXT("HalfWaveRectifierDescription", "HalfWaveRectifier"), LOCTEXT("HalfWaveRectifierTT", "Half Wave Rectifier Saturation")),
+        DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::FullWaveRectifier, LOCTEXT("FullWaveRectifierDescription", "FullWaveRectifier"), LOCTEXT("FullWaveRectifierTT", "Full Wave Rectifier Saturation")),
     DEFINE_METASOUND_ENUM_END()
 #undef LOCTEXT_NAMESPACE
 

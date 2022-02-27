@@ -6,7 +6,7 @@ namespace DSPProcessing
 {
     FSaturation::FSaturation()
         : SaturationType(ESaturationType::Tape)
-        , SelectedSaturationTypePtr(&FSaturation::ProcessTape)
+        , SelectedSaturationTypePtr(&FSaturation::Tape)
     {
         
     }
@@ -49,10 +49,40 @@ namespace DSPProcessing
         {
             default:
             case ESaturationType::Tape:
-                SelectedSaturationTypePtr = &FSaturation::ProcessTape;
+                SelectedSaturationTypePtr = &FSaturation::Tape;
+                break;
+            case ESaturationType::Tape2:
+                SelectedSaturationTypePtr = &FSaturation::Tape2;
+                break;
+            case ESaturationType::Overdrive:
+                SelectedSaturationTypePtr = &FSaturation::Overdrive;
+                break;
+            case ESaturationType::Tube:
+                SelectedSaturationTypePtr = &FSaturation::Tube;
+                break;
+            case ESaturationType::Tube2:
+                SelectedSaturationTypePtr = &FSaturation::Tube2;
+                break;
+            case ESaturationType::Distortion:
+                SelectedSaturationTypePtr = &FSaturation::Distortion;
+                break;
+            case ESaturationType::Metal:
+                SelectedSaturationTypePtr = &FSaturation::Metal;
+                break;
+            case ESaturationType::Fuzz:
+                SelectedSaturationTypePtr = &FSaturation::Fuzz;
                 break;
             case ESaturationType::HardClip:
-                SelectedSaturationTypePtr = &FSaturation::ProcessHardClip;
+                SelectedSaturationTypePtr = &FSaturation::HardClip;
+                break;
+            case ESaturationType::Foldback:
+                SelectedSaturationTypePtr = &FSaturation::Foldback;
+                break;
+            case ESaturationType::HalfWaveRectifier:
+                SelectedSaturationTypePtr = &FSaturation::HalfWaveRectifier;
+                break;
+            case ESaturationType::FullWaveRectifier:
+                SelectedSaturationTypePtr = &FSaturation::FullWaveRectifier;
                 break;
         }
     }
@@ -63,13 +93,43 @@ namespace DSPProcessing
 
         switch (SaturationType)
         {
-        default:
-        case ESaturationType::Tape:
-            GainParamSmoother.SetNewParamValue(1.0f + 19.0f * InGain);  // Range = [1, 20]
-            break;
-        case ESaturationType::HardClip:
-            GainParamSmoother.SetNewParamValue(1.0f + 300.0f * InGain); // Range = [1, 300]
-            break;
+            default:
+            case ESaturationType::Tape:
+                GainParamSmoother.SetNewParamValue(1.0f + 19.0f * InGain);  // Range = [1, 20]
+                break;
+            case ESaturationType::Tape2:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::Overdrive:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::Tube:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::Tube2:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::Distortion:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::Metal:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::Fuzz:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::HardClip:
+                GainParamSmoother.SetNewParamValue(1.0f + 300.0f * InGain); // Range = [1, 300]
+                break;
+            case ESaturationType::Foldback:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::HalfWaveRectifier:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
+            case ESaturationType::FullWaveRectifier:
+                GainParamSmoother.SetNewParamValue(1.0f);
+                break;
         }
     }
 
@@ -115,7 +175,7 @@ namespace DSPProcessing
         (this->*(SelectedSaturationTypePtr))(InBuffer, OutBuffer, NumSamples);
     }
 
-    void FSaturation::ProcessTape(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    void FSaturation::Tape(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
         // Naive version
         //for (int32 i = 0; i < NumSamples; ++i)
@@ -180,7 +240,42 @@ namespace DSPProcessing
         }
     }
 
-    void FSaturation::ProcessHardClip(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    void FSaturation::Tape2(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::Overdrive(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::Tube(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::Tube2(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::Distortion(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::Metal(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::Fuzz(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::HardClip(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
         // Naive version
         //for (int32 i = 0; i < NumSamples; ++i)
@@ -204,20 +299,20 @@ namespace DSPProcessing
         //}
 
         // SIMD version
-        const VectorRegister& VOnes      = GlobalVectorConstants::FloatOne;
+        const VectorRegister& VOnes = GlobalVectorConstants::FloatOne;
         const VectorRegister& VMinusOnes = GlobalVectorConstants::FloatMinusOne;
 
         for (int32 i = 0; i < NumSamples; i += 4)
         {
-            const float CurrentGain     = GainParamSmoother.GetValue();
-            const float CurrentBias     = BiasParamSmoother.GetValue();
+            const float CurrentGain = GainParamSmoother.GetValue();
+            const float CurrentBias = BiasParamSmoother.GetValue();
             const float CurrentOutLevel = OutLevelParamSmoother.GetValue();
-            const float CurrentMix      = MixParamSmoother.GetValue();
+            const float CurrentMix = MixParamSmoother.GetValue();
 
-            const VectorRegister VGain     = VectorLoadFloat1(&CurrentGain);
-            const VectorRegister VBias     = VectorLoadFloat1(&CurrentBias);
+            const VectorRegister VGain = VectorLoadFloat1(&CurrentGain);
+            const VectorRegister VBias = VectorLoadFloat1(&CurrentBias);
             const VectorRegister VOutLevel = VectorLoadFloat1(&CurrentOutLevel);
-            const VectorRegister VMix      = VectorLoadFloat1(&CurrentMix);
+            const VectorRegister VMix = VectorLoadFloat1(&CurrentMix);
 
             //const float In = InBuffer[i];
             const VectorRegister In = VectorLoadAligned(&InBuffer[i]);
@@ -232,15 +327,30 @@ namespace DSPProcessing
             VectorRegister Out = VectorMax(VectorMin(Gain_x_In, VOnes), VMinusOnes);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister One_Minus_Mix      = VectorSubtract(VOnes, VMix);
+            const VectorRegister One_Minus_Mix = VectorSubtract(VOnes, VMix);
             const VectorRegister One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
             Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
-            
+
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
 
             //OutBuffer[i] = Out;
             VectorStoreAligned(Out, &OutBuffer[i]);
         }
+    }
+
+    void FSaturation::Foldback(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::HalfWaveRectifier(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+    }
+
+    void FSaturation::FullWaveRectifier(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+    {
+        FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
     }
 }

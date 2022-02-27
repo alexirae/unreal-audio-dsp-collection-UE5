@@ -11,7 +11,17 @@ UENUM(BlueprintType)
 enum class ESubmixEffectSaturationType : uint8
 {
     Tape = 0,
+    Tape2,
+    Overdrive,
+    Tube,
+    Tube2,
+    Distortion,
+    Metal,
+    Fuzz,
     HardClip,
+    Foldback,
+    HalfWaveRectifier,
+    FullWaveRectifier,
     Count UMETA(Hidden)
 };
 

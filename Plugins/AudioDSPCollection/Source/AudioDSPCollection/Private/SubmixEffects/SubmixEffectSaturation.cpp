@@ -10,9 +10,28 @@ namespace
             default:
             case ESubmixEffectSaturationType::Tape:
                 return DSPProcessing::ESaturationType::Tape;
-
+            case ESubmixEffectSaturationType::Tape2:
+                return DSPProcessing::ESaturationType::Tape2;
+            case ESubmixEffectSaturationType::Overdrive:
+                return DSPProcessing::ESaturationType::Overdrive;
+            case ESubmixEffectSaturationType::Tube:
+                return DSPProcessing::ESaturationType::Tube;
+            case ESubmixEffectSaturationType::Tube2:
+                return DSPProcessing::ESaturationType::Tube2;
+            case ESubmixEffectSaturationType::Distortion:
+                return DSPProcessing::ESaturationType::Distortion;
+            case ESubmixEffectSaturationType::Metal:
+                return DSPProcessing::ESaturationType::Metal;
+            case ESubmixEffectSaturationType::Fuzz:
+                return DSPProcessing::ESaturationType::Fuzz;
             case ESubmixEffectSaturationType::HardClip:
                 return DSPProcessing::ESaturationType::HardClip;
+            case ESubmixEffectSaturationType::Foldback:
+                return DSPProcessing::ESaturationType::Foldback;
+            case ESubmixEffectSaturationType::HalfWaveRectifier:
+                return DSPProcessing::ESaturationType::HalfWaveRectifier;
+            case ESubmixEffectSaturationType::FullWaveRectifier:
+                return DSPProcessing::ESaturationType::FullWaveRectifier;
         }
     }
 }
