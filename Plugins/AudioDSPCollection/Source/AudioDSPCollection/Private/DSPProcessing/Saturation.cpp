@@ -11,9 +11,11 @@ namespace DSPProcessing
         const VectorRegister4Float& VOneHalf   = GlobalVectorConstants::FloatOneHalf;
         const VectorRegister4Float& VOnes      = GlobalVectorConstants::FloatOne;
         const VectorRegister4Float& VTwos      = GlobalVectorConstants::FloatTwo;
+        const VectorRegister4Float& VEps       = GlobalVectorConstants::SmallLengthThreshold;
 
         constexpr VectorRegister4Float VThrees = MakeVectorRegisterFloatConstant(3.0f, 3.0f, 3.0f, 3.0f);
 
+        constexpr float Eps = 1.e-8f;
 
         FORCEINLINE float MapFromNormalizedRange(float value, float minRange, float maxRange)
         {
@@ -174,7 +176,7 @@ namespace DSPProcessing
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::HardClip:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 300.0f);
+                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Foldback:
@@ -276,8 +278,7 @@ namespace DSPProcessing
 
             //float Out = Gain_x_In / FMath::Sqrt(Gain_x_In * Gain_x_In + 1.0f);
             VectorRegister4Float Out = VectorMultiplyAdd(Gain_x_In, Gain_x_In, FSaturationUtils::VOnes);
-            Out = VectorReciprocalSqrt(Out);
-            Out = VectorMultiply(Gain_x_In, Out);
+            Out = VectorMultiply(Gain_x_In, VectorReciprocalSqrt(Out));
 
             //Out = Out * Mix + (1.0f - Mix) * In;
             const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
@@ -480,8 +481,20 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = (In_Plus_Bias > 0.0f) ? Gain_x_In : Gain_x_In * FMath::InvSqrt(Gain_x_In * Gain_x_In + 1.0f);
-            const VectorRegister4Float Gain_x_In_Sqrt_Plus_One = VectorMultiplyAdd(Gain_x_In, Gain_x_In, FSaturationUtils::VOnes);
-            VectorRegister4Float Out = (VectorAnyGreaterThan(In_Plus_Bias, FSaturationUtils::VZeros) > 0) ? Gain_x_In : VectorMultiply(Gain_x_In, VectorReciprocalSqrt(Gain_x_In_Sqrt_Plus_One));
+            const VectorRegister4Float Gain_x_In_Sqr_Plus_One = VectorMultiplyAdd(Gain_x_In, Gain_x_In, FSaturationUtils::VOnes);
+            const VectorRegister4Float Gain_x_In_Over_Sqrt_Gain_x_In_Sqr_Plus_One = VectorMultiply(Gain_x_In, VectorReciprocalSqrt(Gain_x_In_Sqr_Plus_One));
+
+            AlignedFloat4 Out_Float4(Gain_x_In);
+
+            for (uint32 j = 0; j < 4; ++j)
+            {
+                if (VectorGetComponentDynamic(In_Plus_Bias, j) < 0.0f)
+                {
+                    Out_Float4[j] = VectorGetComponentDynamic(Gain_x_In_Over_Sqrt_Gain_x_In_Sqr_Plus_One, j);
+                }
+            }
+
+            VectorRegister4Float Out = Out_Float4.ToVectorRegister();
             
             //Out = FMath::Clamp(Gain_x_In, -1.0f, 1.0f);
             Out = FSaturationUtils::VectorClampMinusOneToOne(Gain_x_In);
@@ -546,7 +559,6 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = FMath::Pow(FMath::Clamp(In_Plus_Bias, -1.0f, 1.0f) + 1.0f, Gain) - 1.0f;
-            const VectorRegister4Float OneOverAtanGain = VectorReciprocal(FSaturationUtils::VectorTanh(VGain));
             const VectorRegister4Float Clamp_In_Plus_Bias_Plus_One = VectorAdd(FSaturationUtils::VectorClampMinusOneToOne(In_Plus_Bias), FSaturationUtils::VOnes);
             const VectorRegister4Float Pow_Clamp_In_Plus_Bias_Plus_One_To_Gain = VectorPow(Clamp_In_Plus_Bias_Plus_One, VGain);
             VectorRegister4Float Out = VectorSubtract(Pow_Clamp_In_Plus_Bias_Plus_One_To_Gain, FSaturationUtils::VOnes);
@@ -655,7 +667,7 @@ namespace DSPProcessing
 
         //    const float Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In = Abs_Clamp_Gain_x_In * Two_Minus_Abs_Clamp_Gain_x_In;
 
-        //    float Out = (In_Plus_Bias >= 0.0f) ? Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In : -Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In;
+        //    float Out = (In_Plus_Bias > 0.0f) ? Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In : -Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In;
         //
         //    Out = Out * Mix + (1.0f - Mix) * In;
         //    Out = Out * OutLevel;
@@ -686,7 +698,7 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //const float Abs_Clamp_Gain_x_In = FMath::Abs(FMath::Clamp(Gain_x_In, -1.0f, 1.0f));
-            const VectorRegister4Float Abs_Clamp_Gain_x_In = VectorAbs(FSaturationUtils::VectorClampMinusOneToOne(In_Plus_Bias));
+            const VectorRegister4Float Abs_Clamp_Gain_x_In = VectorAbs(FSaturationUtils::VectorClampMinusOneToOne(Gain_x_In));
 
             //const float Two_Minus_Abs_Clamp_Gain_x_In = 2.0f - Abs_Clamp_Gain_x_In;
             const VectorRegister4Float Two_Minus_Abs_Clamp_Gain_x_In = VectorSubtract(FSaturationUtils::VTwos, Abs_Clamp_Gain_x_In);
@@ -694,9 +706,19 @@ namespace DSPProcessing
             //const float Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In = Abs_Clamp_Gain_x_In * Two_Minus_Abs_Clamp_Gain_x_In;
             const VectorRegister4Float Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In = VectorMultiply(Abs_Clamp_Gain_x_In, Two_Minus_Abs_Clamp_Gain_x_In);
 
-            //float Out = (In_Plus_Bias >= 0.0f) ? Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In : -Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In;
-            VectorRegister4Float Out = (VectorAnyGreaterThan(In_Plus_Bias, FSaturationUtils::VZeros) > 0) ? Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In 
-                                                                                                          : VectorNegate(Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In);
+            //float Out = (In_Plus_Bias > 0.0f) ? Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In : -Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In;
+            AlignedFloat4 Out_Float4(Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In);
+
+            for (uint32 j = 0; j < 4; ++j)
+            {
+                if (VectorGetComponentDynamic(In_Plus_Bias, j) < 0.0f)
+                {
+                    Out_Float4[j] = -Out_Float4[j];
+                }
+            }
+
+            VectorRegister4Float Out = Out_Float4.ToVectorRegister();
+
             //Out = Out * Mix + (1.0f - Mix) * In;
             const VectorRegister4Float One_Minus_Mix = VectorSubtract(FSaturationUtils::VOnes, VMix);
             const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
@@ -713,29 +735,29 @@ namespace DSPProcessing
     void FSaturation::Fuzz(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
         // Naive version
-        for (int32 i = 0; i < NumSamples; ++i)
-        {
-            const float Gain     = GainParamSmoother.GetValue();
-            const float Bias     = BiasParamSmoother.GetValue();
-            const float OutLevel = OutLevelParamSmoother.GetValue();
-            const float Mix      = MixParamSmoother.GetValue();
-        
-            const float In = InBuffer[i];
-        
-            const float In_Plus_Bias = In + Bias;
-            const float Gain_x_In    = Gain * In_Plus_Bias;
-
-            const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / FMath::Abs(Gain_x_In);
-
-            float Out = -Gain_x_In_Over_Abs_Gain_x_In * (1.0f - FMath::Exp(Gain_x_In * Gain_x_In_Over_Abs_Gain_x_In));
-        
-            Out = FMath::Clamp(Out, -1.0f, 1.0f);
-        
-            Out = Out * Mix + (1.0f - Mix) * In;
-            Out = Out * OutLevel;
-        
-            OutBuffer[i] = Out;
-        }
+        //for (int32 i = 0; i < NumSamples; ++i)
+        //{
+        //    const float Gain     = GainParamSmoother.GetValue();
+        //    const float Bias     = BiasParamSmoother.GetValue();
+        //    const float OutLevel = OutLevelParamSmoother.GetValue();
+        //    const float Mix      = MixParamSmoother.GetValue();
+        //
+        //    const float In = InBuffer[i];
+        //
+        //    const float In_Plus_Bias = In + Bias;
+        //    const float Gain_x_In    = Gain * In_Plus_Bias;
+        //
+        //    const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / (FMath::Abs(Gain_x_In) + FSaturationUtils::Eps);
+        //
+        //    float Out = -Gain_x_In_Over_Abs_Gain_x_In * (1.0f - FMath::Exp(Gain_x_In * Gain_x_In_Over_Abs_Gain_x_In));
+        //
+        //    Out = FMath::Clamp(Out, -1.0f, 1.0f);
+        //    
+        //    Out = Out * Mix + (1.0f - Mix) * In;
+        //    Out = Out * OutLevel;
+        //
+        //    OutBuffer[i] = Out;
+        //}
 
         // SIMD version
         for (int32 i = 0; i < NumSamples; i += 4)
@@ -759,8 +781,8 @@ namespace DSPProcessing
             //const float Gain_x_In = Gain * In_Plus_Bias;
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
-            //const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / FMath::Abs(Gain_x_In);
-            const VectorRegister4Float Gain_x_In_Over_Abs_Gain_x_In = VectorMultiply(Gain_x_In, VectorReciprocal(VectorAbs(Gain_x_In)));
+            //const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / (FMath::Abs(Gain_x_In) + FSaturationUtils::Eps);
+            const VectorRegister4Float Gain_x_In_Over_Abs_Gain_x_In = VectorDivide(Gain_x_In, VectorAdd(VectorAbs(Gain_x_In), FSaturationUtils::VEps));
 
             //float Out = -Gain_x_In_Over_Abs_Gain_x_In * (1.0f - FMath::Exp(Gain_x_In * Gain_x_In_Over_Abs_Gain_x_In));
             const VectorRegister4Float Gain_x_Gain_x_In_Over_Abs_Gain_x_In = VectorMultiply(Gain_x_In, Gain_x_In_Over_Abs_Gain_x_In);
@@ -893,13 +915,29 @@ namespace DSPProcessing
 
             //const float Two_x_Gain = 2.0f * Gain;
             const VectorRegister4Float Two_x_Gain = VectorMultiply(FSaturationUtils::VTwos, VGain);
+            const VectorRegister4Float Two_x_Gain_Minus_In_Plus_Bias = VectorSubtract(Two_x_Gain, In_Plus_Bias);
 
             //float Out = (In_Plus_Bias > Gain) ? Two_x_Gain - In_Plus_Bias
             //                                  : (In_Plus_Bias < -Gain) ? -Two_x_Gain - In_Plus_Bias
             //                                                           : In_Plus_Bias;
-            VectorRegister4Float Out = (VectorAnyGreaterThan(In_Plus_Bias, VGain) > 0) ? VectorSubtract(Two_x_Gain, In_Plus_Bias)
-                                                                                       : (VectorAnyGreaterThan(VectorMultiply(FSaturationUtils::VMinusOnes, VGain), In_Plus_Bias) > 0) ? VectorSubtract(VectorMultiply(FSaturationUtils::VMinusOnes, Two_x_Gain), In_Plus_Bias)
-                                                                                                                                                                                       : In_Plus_Bias;
+            AlignedFloat4 Out_Float4(In_Plus_Bias);
+
+            for (uint32 j = 0; j < 4; ++j)
+            {
+                const float In_Plus_Bias_Float = VectorGetComponentDynamic(In_Plus_Bias, j);
+                const float VGain_Float        = VectorGetComponentDynamic(VGain, j);
+
+                if (In_Plus_Bias_Float > VGain_Float)
+                {
+                    Out_Float4[j] = VectorGetComponentDynamic(Two_x_Gain_Minus_In_Plus_Bias, j);
+                }
+                else if (In_Plus_Bias_Float < -VGain_Float)
+                {
+                    Out_Float4[j] = -VectorGetComponentDynamic(Two_x_Gain, j) - In_Plus_Bias_Float;
+                }
+            }
+
+            VectorRegister4Float Out = Out_Float4.ToVectorRegister();
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
             Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
@@ -957,7 +995,17 @@ namespace DSPProcessing
             const VectorRegister4Float In_Plus_Bias = VectorAdd(In, VBias);
 
             //float Out = (In_Plus_Bias > 0.0f) ? In_Plus_Bias : 0.0f;
-            VectorRegister4Float Out = (VectorAnyGreaterThan(In_Plus_Bias, FSaturationUtils::VZeros) > 0) ? In_Plus_Bias : FSaturationUtils::VZeros;
+            AlignedFloat4 Out_Float4(In_Plus_Bias);
+
+            for (uint32 j = 0; j < 4; ++j)
+            {
+                if (Out_Float4[j] < 0.0f)
+                {
+                    Out_Float4[j] = 0.0f;
+                }
+            }
+
+            VectorRegister4Float Out = Out_Float4.ToVectorRegister();
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
             Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
