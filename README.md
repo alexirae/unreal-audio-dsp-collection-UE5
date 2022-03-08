@@ -33,7 +33,7 @@ Currently implemented Effects:
 
 **Metasound Nodes:**
 <br/>
-![](https://user-images.githubusercontent.com/7047334/153762718-c8993a63-ee35-4e2f-b8f0-ef5ea64da936.gif)
+![](https://user-images.githubusercontent.com/7047334/157324269-b15c6576-a2e8-44e4-ae47-749d0e74e795.gif)
 
 **SourceEffects** and **SubmixEffects:**
 <br/>
