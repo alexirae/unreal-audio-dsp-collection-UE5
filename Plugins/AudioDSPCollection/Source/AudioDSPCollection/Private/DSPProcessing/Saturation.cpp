@@ -1,43 +1,23 @@
 #include "DSPProcessing/Saturation.h"
+#include "DSPProcessing/Helpers/AudioUtils.h"
 #include "CoreMinimal.h"
 
 
 namespace DSPProcessing
 {
-    namespace FSaturationUtils
+    namespace SaturationUtils
     {
-        const VectorRegister4Float& VMinusOnes = GlobalVectorConstants::FloatMinusOne;
-        const VectorRegister4Float& VZeros     = GlobalVectorConstants::FloatZero;
-        const VectorRegister4Float& VOneHalf   = GlobalVectorConstants::FloatOneHalf;
-        const VectorRegister4Float& VOnes      = GlobalVectorConstants::FloatOne;
-        const VectorRegister4Float& VTwos      = GlobalVectorConstants::FloatTwo;
-        const VectorRegister4Float& VEps       = GlobalVectorConstants::SmallLengthThreshold;
-
-        constexpr VectorRegister4Float VThrees = MakeVectorRegisterFloatConstant(3.0f, 3.0f, 3.0f, 3.0f);
-
-        constexpr float Eps = 1.e-8f;
-
-        FORCEINLINE float MapFromNormalizedRange(float value, float minRange, float maxRange)
-        {
-            return minRange + value * (maxRange - minRange);
-        }
-
-        FORCEINLINE VectorRegister4Float VectorClampMinusOneToOne(const VectorRegister4Float& Vec)
-        {
-            return VectorMax(VectorMin(Vec, FSaturationUtils::VOnes), FSaturationUtils::VMinusOnes);
-        }
-
         FORCEINLINE float FastTanh(float x)
         {
             const float AbsX = FMath::Abs(x);
             const float XSqr = x * x;
 
-            const float z = x * (1.0f + AbsX +
-                                  (1.05622909486427f + 0.215166815390934f * XSqr * AbsX) * XSqr);
+            const float Z = x * (1.0f + AbsX + (1.05622909486427f + 0.215166815390934f * XSqr * AbsX) * XSqr);
 
-            return z / (1.02718982441289f + FMath::Abs(z));
+            return Z / (1.02718982441289f + FMath::Abs(Z));
         }
 
+        // Vectorized functions
         FORCEINLINE VectorRegister4Float VectorTanh(const VectorRegister4Float& X)
         {
         #if UE_PLATFORM_MATH_USE_SVML
@@ -144,39 +124,39 @@ namespace DSPProcessing
         {
             default:
             case ESaturationType::Tape:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 20.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 20.0f);
                 GainParamSmoother.SetNewParamValue(InGain);  
                 break;
             case ESaturationType::Tape2:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 0.000001f, 35.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 0.000001f, 35.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Overdrive:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 20.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 20.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Tube:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 40.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 40.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Tube2:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 45.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 45.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Distortion:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 0.000001f, 80.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 0.000001f, 80.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Metal:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Fuzz:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 0.5f, 35.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 0.5f, 35.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::HardClip:
-                InGain = FSaturationUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
+                InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
                 GainParamSmoother.SetNewParamValue(InGain);
                 break;
             case ESaturationType::Foldback:
@@ -233,7 +213,7 @@ namespace DSPProcessing
 
     void FSaturation::Tape(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -254,7 +234,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -277,14 +257,11 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = Gain_x_In / FMath::Sqrt(Gain_x_In * Gain_x_In + 1.0f);
-            VectorRegister4Float Out = VectorMultiplyAdd(Gain_x_In, Gain_x_In, FSaturationUtils::VOnes);
+            VectorRegister4Float Out = VectorMultiplyAdd(Gain_x_In, Gain_x_In, AudioUtils::VOnes);
             Out = VectorMultiply(Gain_x_In, VectorReciprocalSqrt(Out));
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
-
+            AudioUtils::VectorMix(In, VMix, Out);
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
 
@@ -295,7 +272,7 @@ namespace DSPProcessing
 
     void FSaturation::Tape2(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -316,7 +293,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -344,12 +321,10 @@ namespace DSPProcessing
             Out = VectorMultiply(Out, OneOverAtanGain);
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -361,7 +336,7 @@ namespace DSPProcessing
 
     void FSaturation::Overdrive(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -385,18 +360,18 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
-            const float CurrentGain = GainParamSmoother.GetValue();
-            const float CurrentBias = BiasParamSmoother.GetValue();
+            const float CurrentGain     = GainParamSmoother.GetValue();
+            const float CurrentBias     = BiasParamSmoother.GetValue();
             const float CurrentOutLevel = OutLevelParamSmoother.GetValue();
-            const float CurrentMix = MixParamSmoother.GetValue();
+            const float CurrentMix      = MixParamSmoother.GetValue();
 
-            const VectorRegister4Float VGain = VectorLoadFloat1(&CurrentGain);
-            const VectorRegister4Float VBias = VectorLoadFloat1(&CurrentBias);
+            const VectorRegister4Float VGain     = VectorLoadFloat1(&CurrentGain);
+            const VectorRegister4Float VBias     = VectorLoadFloat1(&CurrentBias);
             const VectorRegister4Float VOutLevel = VectorLoadFloat1(&CurrentOutLevel);
-            const VectorRegister4Float VMix = VectorLoadFloat1(&CurrentMix);
+            const VectorRegister4Float VMix      = VectorLoadFloat1(&CurrentMix);
 
             //const float In = InBuffer[i];
             const VectorRegister4Float In = VectorLoadAligned(&InBuffer[i]);
@@ -408,23 +383,21 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //const float Gain_x_ClampIn = Gain * FMath::Clamp(In_Plus_Bias, -1.0f, 1.0f);
-            const VectorRegister4Float ClampIn        = FSaturationUtils::VectorClampMinusOneToOne(In_Plus_Bias);
+            const VectorRegister4Float ClampIn        = AudioUtils::VectorClampMinusOneToOne(In_Plus_Bias);
             const VectorRegister4Float Gain_x_ClampIn = VectorMultiply(VGain, ClampIn);
 
             //const float Clamp_Gain_x_ClampIn = FMath::Clamp(Gain_x_ClampIn, -1.0f, 1.0f);
-            const VectorRegister4Float Clamp_Gain_x_ClampIn = FSaturationUtils::VectorClampMinusOneToOne(Gain_x_ClampIn);
+            const VectorRegister4Float Clamp_Gain_x_ClampIn = AudioUtils::VectorClampMinusOneToOne(Gain_x_ClampIn);
 
             //float Out = 0.5f * FMath::Clamp(Gain_x_In, -1.0f, 1.0f) * (3.0f - Clamp_Gain_x_ClampIn * Clamp_Gain_x_ClampIn);
-            const VectorRegister4Float Clamp_Gain_x_In                      = FSaturationUtils::VectorClampMinusOneToOne(Gain_x_In);
+            const VectorRegister4Float Clamp_Gain_x_In                      = AudioUtils::VectorClampMinusOneToOne(Gain_x_In);
             const VectorRegister4Float Clamp_Gain_x_ClampIn_Sqr             = VectorMultiply(Clamp_Gain_x_ClampIn, Clamp_Gain_x_ClampIn);
-            const VectorRegister4Float Three_Minus_Clamp_Gain_x_ClampIn_Sqr = VectorSubtract(FSaturationUtils::VThrees, Clamp_Gain_x_ClampIn_Sqr);
+            const VectorRegister4Float Three_Minus_Clamp_Gain_x_ClampIn_Sqr = VectorSubtract(AudioUtils::VThrees, Clamp_Gain_x_ClampIn_Sqr);
 
-            VectorRegister4Float Out = VectorMultiply(FSaturationUtils::VOneHalf, VectorMultiply(Clamp_Gain_x_In, Three_Minus_Clamp_Gain_x_ClampIn_Sqr));
+            VectorRegister4Float Out = VectorMultiply(AudioUtils::VOneHalf, VectorMultiply(Clamp_Gain_x_In, Three_Minus_Clamp_Gain_x_ClampIn_Sqr));
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -436,7 +409,7 @@ namespace DSPProcessing
 
     void FSaturation::Tube(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -458,7 +431,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -481,7 +454,7 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = (In_Plus_Bias > 0.0f) ? Gain_x_In : Gain_x_In * FMath::InvSqrt(Gain_x_In * Gain_x_In + 1.0f);
-            const VectorRegister4Float Gain_x_In_Sqr_Plus_One = VectorMultiplyAdd(Gain_x_In, Gain_x_In, FSaturationUtils::VOnes);
+            const VectorRegister4Float Gain_x_In_Sqr_Plus_One = VectorMultiplyAdd(Gain_x_In, Gain_x_In, AudioUtils::VOnes);
             const VectorRegister4Float Gain_x_In_Over_Sqrt_Gain_x_In_Sqr_Plus_One = VectorMultiply(Gain_x_In, VectorReciprocalSqrt(Gain_x_In_Sqr_Plus_One));
 
             AlignedFloat4 Out_Float4(Gain_x_In);
@@ -497,12 +470,10 @@ namespace DSPProcessing
             VectorRegister4Float Out = Out_Float4.ToVectorRegister();
             
             //Out = FMath::Clamp(Gain_x_In, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Gain_x_In);
+            Out = AudioUtils::VectorClampMinusOneToOne(Gain_x_In);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -514,7 +485,7 @@ namespace DSPProcessing
 
     void FSaturation::Tube2(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -536,7 +507,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -559,17 +530,15 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = FMath::Pow(FMath::Clamp(In_Plus_Bias, -1.0f, 1.0f) + 1.0f, Gain) - 1.0f;
-            const VectorRegister4Float Clamp_In_Plus_Bias_Plus_One = VectorAdd(FSaturationUtils::VectorClampMinusOneToOne(In_Plus_Bias), FSaturationUtils::VOnes);
+            const VectorRegister4Float Clamp_In_Plus_Bias_Plus_One = VectorAdd(AudioUtils::VectorClampMinusOneToOne(In_Plus_Bias), AudioUtils::VOnes);
             const VectorRegister4Float Pow_Clamp_In_Plus_Bias_Plus_One_To_Gain = VectorPow(Clamp_In_Plus_Bias_Plus_One, VGain);
-            VectorRegister4Float Out = VectorSubtract(Pow_Clamp_In_Plus_Bias_Plus_One_To_Gain, FSaturationUtils::VOnes);
+            VectorRegister4Float Out = VectorSubtract(Pow_Clamp_In_Plus_Bias_Plus_One_To_Gain, AudioUtils::VOnes);
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -581,7 +550,7 @@ namespace DSPProcessing
 
     void FSaturation::Distortion(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -594,7 +563,7 @@ namespace DSPProcessing
         //    const float In_Plus_Bias = In + Bias;
         //    const float Gain_x_In    = Gain * In_Plus_Bias;
         //
-        //    float Out = FSaturationUtils::FastTanh(Gain_x_In) / FSaturationUtils::FastTanh(Gain);
+        //    float Out = SaturationUtils::FastTanh(Gain_x_In) / SaturationUtils::FastTanh(Gain);
         //
         //    Out = FMath::Clamp(Out, -1.0f, 1.0f);
         //
@@ -604,7 +573,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -627,17 +596,15 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = FMath::Atan(Gain_x_In) / FMath::Atan(Gain);
-            const VectorRegister4Float OneOverAtanGain = VectorReciprocal(FSaturationUtils::VectorTanh(VGain));
-            VectorRegister4Float Out = FSaturationUtils::VectorTanh(Gain_x_In);
+            const VectorRegister4Float OneOverAtanGain = VectorReciprocal(SaturationUtils::VectorTanh(VGain));
+            VectorRegister4Float Out = SaturationUtils::VectorTanh(Gain_x_In);
             Out = VectorMultiply(Out, OneOverAtanGain);
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -649,7 +616,7 @@ namespace DSPProcessing
 
     void FSaturation::Metal(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -675,7 +642,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -698,10 +665,10 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //const float Abs_Clamp_Gain_x_In = FMath::Abs(FMath::Clamp(Gain_x_In, -1.0f, 1.0f));
-            const VectorRegister4Float Abs_Clamp_Gain_x_In = VectorAbs(FSaturationUtils::VectorClampMinusOneToOne(Gain_x_In));
+            const VectorRegister4Float Abs_Clamp_Gain_x_In = VectorAbs(AudioUtils::VectorClampMinusOneToOne(Gain_x_In));
 
             //const float Two_Minus_Abs_Clamp_Gain_x_In = 2.0f - Abs_Clamp_Gain_x_In;
-            const VectorRegister4Float Two_Minus_Abs_Clamp_Gain_x_In = VectorSubtract(FSaturationUtils::VTwos, Abs_Clamp_Gain_x_In);
+            const VectorRegister4Float Two_Minus_Abs_Clamp_Gain_x_In = VectorSubtract(AudioUtils::VTwos, Abs_Clamp_Gain_x_In);
 
             //const float Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In = Abs_Clamp_Gain_x_In * Two_Minus_Abs_Clamp_Gain_x_In;
             const VectorRegister4Float Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In = VectorMultiply(Abs_Clamp_Gain_x_In, Two_Minus_Abs_Clamp_Gain_x_In);
@@ -720,9 +687,7 @@ namespace DSPProcessing
             VectorRegister4Float Out = Out_Float4.ToVectorRegister();
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -734,7 +699,7 @@ namespace DSPProcessing
 
     void FSaturation::Fuzz(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -747,7 +712,7 @@ namespace DSPProcessing
         //    const float In_Plus_Bias = In + Bias;
         //    const float Gain_x_In    = Gain * In_Plus_Bias;
         //
-        //    const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / (FMath::Abs(Gain_x_In) + FSaturationUtils::Eps);
+        //    const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / (FMath::Abs(Gain_x_In) + AudioUtils::Eps);
         //
         //    float Out = -Gain_x_In_Over_Abs_Gain_x_In * (1.0f - FMath::Exp(Gain_x_In * Gain_x_In_Over_Abs_Gain_x_In));
         //
@@ -759,7 +724,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -781,22 +746,20 @@ namespace DSPProcessing
             //const float Gain_x_In = Gain * In_Plus_Bias;
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
-            //const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / (FMath::Abs(Gain_x_In) + FSaturationUtils::Eps);
-            const VectorRegister4Float Gain_x_In_Over_Abs_Gain_x_In = VectorDivide(Gain_x_In, VectorAdd(VectorAbs(Gain_x_In), FSaturationUtils::VEps));
+            //const float Gain_x_In_Over_Abs_Gain_x_In = Gain_x_In / (FMath::Abs(Gain_x_In) + AudioUtils::Eps);
+            const VectorRegister4Float Gain_x_In_Over_Abs_Gain_x_In = VectorDivide(Gain_x_In, VectorAdd(VectorAbs(Gain_x_In), AudioUtils::VEps));
 
             //float Out = -Gain_x_In_Over_Abs_Gain_x_In * (1.0f - FMath::Exp(Gain_x_In * Gain_x_In_Over_Abs_Gain_x_In));
             const VectorRegister4Float Gain_x_Gain_x_In_Over_Abs_Gain_x_In = VectorMultiply(Gain_x_In, Gain_x_In_Over_Abs_Gain_x_In);
             const VectorRegister4Float Exp_Gain_x_Gain_x_In_Over_Abs_Gain_x_In = VectorExp(Gain_x_Gain_x_In_Over_Abs_Gain_x_In);
-            const VectorRegister4Float One_Minus_Exp_Gain_x_Gain_x_In_Over_Abs_Gain_x_In = VectorSubtract(FSaturationUtils::VOnes, Exp_Gain_x_Gain_x_In_Over_Abs_Gain_x_In);
+            const VectorRegister4Float One_Minus_Exp_Gain_x_Gain_x_In_Over_Abs_Gain_x_In = VectorSubtract(AudioUtils::VOnes, Exp_Gain_x_Gain_x_In_Over_Abs_Gain_x_In);
             VectorRegister4Float Out = VectorMultiply(VectorNegate(Gain_x_In_Over_Abs_Gain_x_In), One_Minus_Exp_Gain_x_Gain_x_In_Over_Abs_Gain_x_In);
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -808,7 +771,7 @@ namespace DSPProcessing
 
     void FSaturation::HardClip(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -829,7 +792,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -852,12 +815,10 @@ namespace DSPProcessing
             const VectorRegister4Float Gain_x_In = VectorMultiply(VGain, In_Plus_Bias);
 
             //float Out = FMath::Clamp(Gain_x_In, -1.0f, 1.0f);
-            VectorRegister4Float Out = FSaturationUtils::VectorClampMinusOneToOne(Gain_x_In);
+            VectorRegister4Float Out = AudioUtils::VectorClampMinusOneToOne(Gain_x_In);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix      = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -869,7 +830,7 @@ namespace DSPProcessing
 
     void FSaturation::Foldback(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Gain     = GainParamSmoother.GetValue();
@@ -894,7 +855,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain     = GainParamSmoother.GetValue();
@@ -914,12 +875,13 @@ namespace DSPProcessing
             const VectorRegister4Float In_Plus_Bias = VectorAdd(In, VBias);
 
             //const float Two_x_Gain = 2.0f * Gain;
-            const VectorRegister4Float Two_x_Gain = VectorMultiply(FSaturationUtils::VTwos, VGain);
-            const VectorRegister4Float Two_x_Gain_Minus_In_Plus_Bias = VectorSubtract(Two_x_Gain, In_Plus_Bias);
+            const VectorRegister4Float Two_x_Gain = VectorMultiply(AudioUtils::VTwos, VGain);
 
             //float Out = (In_Plus_Bias > Gain) ? Two_x_Gain - In_Plus_Bias
             //                                  : (In_Plus_Bias < -Gain) ? -Two_x_Gain - In_Plus_Bias
             //                                                           : In_Plus_Bias;
+            const VectorRegister4Float Two_x_Gain_Minus_In_Plus_Bias = VectorSubtract(Two_x_Gain, In_Plus_Bias);
+
             AlignedFloat4 Out_Float4(In_Plus_Bias);
 
             for (uint32 j = 0; j < 4; ++j)
@@ -940,12 +902,10 @@ namespace DSPProcessing
             VectorRegister4Float Out = Out_Float4.ToVectorRegister();
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -957,7 +917,7 @@ namespace DSPProcessing
 
     void FSaturation::HalfWaveRectifier(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Bias     = BiasParamSmoother.GetValue();
@@ -977,7 +937,7 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         { 
             const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -1008,12 +968,10 @@ namespace DSPProcessing
             VectorRegister4Float Out = Out_Float4.ToVectorRegister();
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);
@@ -1025,7 +983,7 @@ namespace DSPProcessing
 
     void FSaturation::FullWaveRectifier(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    const float Bias     = BiasParamSmoother.GetValue();
@@ -1045,16 +1003,16 @@ namespace DSPProcessing
         //    OutBuffer[i] = Out;
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
-            const float CurrentBias = BiasParamSmoother.GetValue();
+            const float CurrentBias     = BiasParamSmoother.GetValue();
             const float CurrentOutLevel = OutLevelParamSmoother.GetValue();
-            const float CurrentMix = MixParamSmoother.GetValue();
+            const float CurrentMix      = MixParamSmoother.GetValue();
 
-            const VectorRegister4Float VBias = VectorLoadFloat1(&CurrentBias);
+            const VectorRegister4Float VBias     = VectorLoadFloat1(&CurrentBias);
             const VectorRegister4Float VOutLevel = VectorLoadFloat1(&CurrentOutLevel);
-            const VectorRegister4Float VMix = VectorLoadFloat1(&CurrentMix);
+            const VectorRegister4Float VMix      = VectorLoadFloat1(&CurrentMix);
 
             //const float In = InBuffer[i];
             const VectorRegister4Float In = VectorLoadAligned(&InBuffer[i]);
@@ -1066,12 +1024,10 @@ namespace DSPProcessing
             VectorRegister4Float Out = VectorAbs(In_Plus_Bias);
 
             //Out = FMath::Clamp(Out, -1.0f, 1.0f);
-            Out = FSaturationUtils::VectorClampMinusOneToOne(Out);
+            Out = AudioUtils::VectorClampMinusOneToOne(Out);
 
             //Out = Out * Mix + (1.0f - Mix) * In;
-            const VectorRegister4Float One_Minus_Mix = VectorSubtract(FSaturationUtils::VOnes, VMix);
-            const VectorRegister4Float One_Minus_Mix_x_In = VectorMultiply(One_Minus_Mix, In);
-            Out = VectorMultiplyAdd(Out, VMix, One_Minus_Mix_x_In);
+            AudioUtils::VectorMix(In, VMix, Out);
 
             //Out = Out * OutputLevel;
             Out = VectorMultiply(Out, VOutLevel);

@@ -52,13 +52,13 @@ namespace DSPProcessing
 
     void FGain::ProcessGain(const float* InBuffer, float* OutBuffer, int32 NumSamples)
     {
-        // Naive version
+        // Sequential version
         //for (int32 i = 0; i < NumSamples; ++i)
         //{
         //    OutBuffer[i] = GainParamSmoother.SmoothedParamValue() * InBuffer[i];
         //}
 
-        // SIMD version
+        // Vectorized version
         for (int32 i = 0; i < NumSamples; i += 4)
         {
             const float CurrentGain = GainParamSmoother.GetValue();
