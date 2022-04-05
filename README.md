@@ -1,7 +1,5 @@
 # Unreal Audio DSP Collection (UE5)
 
-## WARNING: BEWARE THAT THE METASOUND CODE IS BASED ON UE5 PREVIEW 2 AND THE API/FUNCTIONALITY COULD CHANGE ONCE UE5 IS FINALLY RELEASED. THIS PROJECT WILL BE UPDATED ACCORDINGLY IF THAT HAPPENS.
-
 ![](https://user-images.githubusercontent.com/7047334/157249193-f3bbc3ca-d5ad-4e6f-a86b-b728568a224e.png)
 
 An Unreal 5 plugin with a collection of audio effects in 3 different flavors: **Metasound Node**, **SourceEffect** and **SubmixEffect**.
