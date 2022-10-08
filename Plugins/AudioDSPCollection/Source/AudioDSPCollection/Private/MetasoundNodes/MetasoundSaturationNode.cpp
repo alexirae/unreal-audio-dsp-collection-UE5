@@ -82,16 +82,16 @@ namespace Metasound
 
         static const FVertexInterface Interface(
             FInputVertexInterface(
-                TInputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameAudioInput)),
-                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameGain),                          100.0f),
-                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameBias),                          0.0f),
-                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameMix),                           100.0f),
-                TInputDataVertexModel<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameOutLevelDb),                    0.0f),
-                TInputDataVertexModel<FEnumESaturationType>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameSaturationType), static_cast<int32>(DSPProcessing::ESaturationType::Tape))
+                TInputDataVertex<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameAudioInput)),
+                TInputDataVertex<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameGain),                          100.0f),
+                TInputDataVertex<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameBias),                          0.0f),
+                TInputDataVertex<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameMix),                           100.0f),
+                TInputDataVertex<float>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameOutLevelDb),                    0.0f),
+                TInputDataVertex<FEnumESaturationType>(METASOUND_GET_PARAM_NAME_AND_METADATA(InParamNameSaturationType), static_cast<int32>(DSPProcessing::ESaturationType::Tape))
             ),
             
             FOutputVertexInterface(
-                TOutputDataVertexModel<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(OutParamNameAudio))
+                TOutputDataVertex<FAudioBuffer>(METASOUND_GET_PARAM_NAME_AND_METADATA(OutParamNameAudio))
             )
         );
 
