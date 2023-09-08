@@ -4,51 +4,44 @@
 
 namespace Metasound
 {
-#define LOCTEXT_NAMESPACE "MetasoundStandardNodes_GainNode"
+	//------------------------------------------------------------------------------------
+	// FGainOperator
+	//------------------------------------------------------------------------------------
+	class FGainOperator : public TExecutableOperator<FGainOperator>
+	{
+	public:
+		FGainOperator(const FOperatorSettings& InSettings, const FAudioBufferReadRef& InAudioInput, const FFloatReadRef& InGain);
 
-    namespace GainNode
-    {
-        METASOUND_PARAM(InParamNameAudioInput, "In",   "Audio input.")
-        METASOUND_PARAM(InParamNameGain,       "Gain", "The amount of gain to apply to the input signal. Range = [0.0, 1.0]")
-        METASOUND_PARAM(OutParamNameAudio,     "Out",  "Audio output.")
-    }
+		static const FNodeClassMetadata& GetNodeInfo();
 
-#undef LOCTEXT_NAMESPACE
+		virtual FDataReferenceCollection GetInputs()  const override;
+		virtual FDataReferenceCollection GetOutputs() const override;
+		static const FVertexInterface& GetVertexInterface();
+		static TUniquePtr<IOperator> CreateOperator(const FCreateOperatorParams& InParams, FBuildErrorArray& OutErrors);
 
-    //------------------------------------------------------------------------------------
-    // FGainOperator
-    //------------------------------------------------------------------------------------
-    class FGainOperator : public TExecutableOperator<FGainOperator>
-    {
-    public:
-        static const FNodeClassMetadata& GetNodeInfo();
-        static const FVertexInterface& GetVertexInterface();
-        static TUniquePtr<IOperator> CreateOperator(const FCreateOperatorParams& InParams, FBuildErrorArray& OutErrors);
+		void Execute();
 
-        FGainOperator(const FOperatorSettings& InSettings, const FAudioBufferReadRef& InAudioInput, const FFloatReadRef& InGain);
+	private:
+		FAudioBufferReadRef	 AudioInput;
+		FAudioBufferWriteRef AudioOutput;
 
-        virtual FDataReferenceCollection GetInputs()  const override;
-        virtual FDataReferenceCollection GetOutputs() const override;
+		DSPProcessing::FGain GainDSPProcessor;
 
-        void Execute();
-
-    private:
-        FAudioBufferReadRef  AudioInput;
-        FAudioBufferWriteRef AudioOutput;
-
-        DSPProcessing::FGain GainDSPProcessor;
-
-        FFloatReadRef Gain;
-    };
+		FFloatReadRef Gain;
+	};
 
 
-    //------------------------------------------------------------------------------------
-    // FGainNode
-    //------------------------------------------------------------------------------------
-    class FGainNode : public FNodeFacade
-    {
-    public:
-        // Constructor used by the Metasound Frontend.
-        FGainNode(const FNodeInitData& InitData);
-    };
+	//------------------------------------------------------------------------------------
+	// FGainNode
+	//------------------------------------------------------------------------------------
+	class FGainNode : public FNodeFacade
+	{
+	public:
+		// Constructor used by the Metasound Frontend.
+		FGainNode(const FNodeInitData& InitData)
+			: FNodeFacade(InitData.InstanceName, InitData.InstanceID, TFacadeOperatorClass<FGainOperator>())
+		{
+
+		}
+	};
 }

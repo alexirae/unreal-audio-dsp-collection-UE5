@@ -6,32 +6,30 @@
 //------------------------------------------------------------------------------------
 void FSubmixEffectGain::Init(const FSoundEffectSubmixInitData& InitData)
 {
-    GainDSPProcessor.Init();
+	const float SampleRate            = InitData.SampleRate;
+	constexpr float SmoothingTimeInMs = 21.33f;
 
-    const float SampleRate            = InitData.SampleRate;
-    constexpr float SmoothingTimeInMs = 21.33f;
-
-    GainDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
+	GainDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
 }
 
 void FSubmixEffectGain::OnPresetChanged()
 {
-    GET_EFFECT_SETTINGS(SubmixEffectGain);
+	GET_EFFECT_SETTINGS(SubmixEffectGain);
 
-    GainDSPProcessor.SetGain(Settings.Gain);
+	GainDSPProcessor.SetGain(Settings.Gain);
 }
 
 void FSubmixEffectGain::OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData)
 {
-    //TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FSubmixEffectGain::OnProcessAudio"))
+	//TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FSubmixEffectGain::OnProcessAudio"))
 
-    const float* InAudioBuffer = InData.AudioBuffer->GetData();
-    float* OutAudioBuffer      = OutData.AudioBuffer->GetData();
+	const float* InAudioBuffer = InData.AudioBuffer->GetData();
+	float* OutAudioBuffer      = OutData.AudioBuffer->GetData();
 
-    const int32 NumChannels = InData.NumChannels;
-    const int32 NumSamples  = InData.NumFrames * NumChannels;
+	const int32 NumChannels = InData.NumChannels;
+	const int32 NumSamples	= InData.NumFrames * NumChannels;
 
-    GainDSPProcessor.ProcessAudioBuffer(InAudioBuffer, OutAudioBuffer, NumSamples);
+	GainDSPProcessor.ProcessAudioBuffer(InAudioBuffer, OutAudioBuffer, NumSamples);
 }
 
 
@@ -40,5 +38,5 @@ void FSubmixEffectGain::OnProcessAudio(const FSoundEffectSubmixInputData& InData
 //------------------------------------------------------------------------------------
 void USubmixEffectGainPreset::SetSettings(const FSubmixEffectGainSettings& InSettings)
 {
-    UpdateSettings(InSettings);
+	UpdateSettings(InSettings);
 }
