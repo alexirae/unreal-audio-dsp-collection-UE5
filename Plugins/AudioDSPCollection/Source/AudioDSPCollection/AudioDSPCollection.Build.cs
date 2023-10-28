@@ -27,7 +27,8 @@ public class AudioDSPCollection : ModuleRules
 			{
 				// ... add public dependencies that you statically link with here ...
 				"Core",
-				"MetasoundFrontend",
+                "MetasoundEditor",
+                "MetasoundFrontend",
 				"MetasoundGraphCore",
 			}
 			);
