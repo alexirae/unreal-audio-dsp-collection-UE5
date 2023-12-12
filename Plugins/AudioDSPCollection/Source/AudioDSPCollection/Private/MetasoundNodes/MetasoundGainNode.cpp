@@ -46,27 +46,19 @@ namespace Metasound
 		return Info;
 	}
 
-	FDataReferenceCollection FGainOperator::GetInputs() const
+    void FGainOperator::BindInputs(FInputVertexInterfaceData& InOutVertexData)
 	{
 		using namespace GainNode;
 
-		FDataReferenceCollection InputDataReferences;
-
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), AudioInput);
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameGain), Gain);
-
-		return InputDataReferences;
+        InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), AudioInput);
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameGain), Gain);
 	}
 
-	FDataReferenceCollection FGainOperator::GetOutputs() const
+    void FGainOperator::BindOutputs(FOutputVertexInterfaceData& InOutVertexData)
 	{
 		using namespace GainNode;
 
-		FDataReferenceCollection OutputDataReferences;
-
-		OutputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(OutParamNameAudio), AudioOutput);
-
-		return OutputDataReferences;
+        InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(OutParamNameAudio), AudioOutput);
 	}
 
 	const FVertexInterface& FGainOperator::GetVertexInterface()

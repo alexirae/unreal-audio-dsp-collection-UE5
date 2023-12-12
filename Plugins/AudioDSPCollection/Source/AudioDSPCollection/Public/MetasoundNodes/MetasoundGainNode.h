@@ -14,8 +14,8 @@ namespace Metasound
 
 		static const FNodeClassMetadata& GetNodeInfo();
 
-		virtual FDataReferenceCollection GetInputs()  const override;
-		virtual FDataReferenceCollection GetOutputs() const override;
+		virtual void BindInputs(FInputVertexInterfaceData& InOutVertexData) override;
+		virtual void BindOutputs(FOutputVertexInterfaceData& InOutVertexData) override;
 		static const FVertexInterface& GetVertexInterface();
 		static TUniquePtr<IOperator> CreateOperator(const FCreateOperatorParams& InParams, FBuildErrorArray& OutErrors);
 

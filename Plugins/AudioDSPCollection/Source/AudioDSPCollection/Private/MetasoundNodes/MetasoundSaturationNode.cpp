@@ -80,31 +80,23 @@ namespace Metasound
 		return Info;
 	}
 
-	FDataReferenceCollection FSaturationOperator::GetInputs() const
+	void FSaturationOperator::BindInputs(FInputVertexInterfaceData& InOutVertexData)
 	{
 		using namespace SaturationNode;
 
-		FDataReferenceCollection InputDataReferences;
-
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), AudioInput);
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameGain), Gain);
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameBias), Bias);
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameMix), Mix);
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameOutLevelDb), OutLevelDb);
-		InputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(InParamNameSaturationType), SaturationType);
-
-		return InputDataReferences;
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), AudioInput);
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameGain), Gain);
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameBias), Bias);
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameMix), Mix);
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameOutLevelDb), OutLevelDb);
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(InParamNameSaturationType), SaturationType);
 	}
 
-	FDataReferenceCollection FSaturationOperator::GetOutputs() const
+	void FSaturationOperator::BindOutputs(FOutputVertexInterfaceData& InOutVertexData)
 	{
 		using namespace SaturationNode;
 
-		FDataReferenceCollection OutputDataReferences;
-
-		OutputDataReferences.AddDataReadReference(METASOUND_GET_PARAM_NAME(OutParamNameAudio), AudioOutput);
-
-		return OutputDataReferences;
+		InOutVertexData.BindReadVertex(METASOUND_GET_PARAM_NAME(OutParamNameAudio), AudioOutput);
 	}
 
 	const FVertexInterface& FSaturationOperator::GetVertexInterface()
