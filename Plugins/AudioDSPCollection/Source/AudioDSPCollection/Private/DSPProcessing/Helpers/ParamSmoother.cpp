@@ -17,16 +17,16 @@ namespace DSPProcessing
 	{
 		const float TransitionTimeInSamples = InTransitionTimeInMs * SampleRate * 0.001; // ms to samples
 
-		Step = 1.0f - FMath::Exp(-2.0f * PI / static_cast<float>(TransitionTimeInSamples));
+		Step = 1.0f - FMath::Exp(-UE_TWO_PI / TransitionTimeInSamples);
 	}
 
 	void ParamSmootherLPF::SetNewParamValue(float InNewParamValue)
 	{
 		static constexpr float Epsilon = 1.58489e-05f; // -96dB
 
-		const bool areValuesEqual = FMath::Abs(InNewParamValue - CurrentValue) < Epsilon;
+		const bool AreValuesEqual = FMath::Abs(InNewParamValue - CurrentValue) < Epsilon;
 
-		if (areValuesEqual || FirstTime)
+		if (AreValuesEqual || FirstTime)
 		{
 			FirstTime     = false;
 			CurrentValue  = InNewParamValue;

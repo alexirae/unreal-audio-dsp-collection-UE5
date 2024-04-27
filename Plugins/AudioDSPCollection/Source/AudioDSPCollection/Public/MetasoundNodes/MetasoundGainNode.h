@@ -2,44 +2,44 @@
 #include "MetasoundEnumRegistrationMacro.h"
 #include "MetasoundParamHelper.h"
 
-namespace Metasound
+namespace DSPCollection
 {
 	//------------------------------------------------------------------------------------
 	// FGainOperator
 	//------------------------------------------------------------------------------------
-	class FGainOperator : public TExecutableOperator<FGainOperator>
+	class FGainOperator : public Metasound::TExecutableOperator<FGainOperator>
 	{
 	public:
-		FGainOperator(const FOperatorSettings& InSettings, const FAudioBufferReadRef& InAudioInput, const FFloatReadRef& InGain);
+		FGainOperator(const Metasound::FOperatorSettings& InSettings, const Metasound::FAudioBufferReadRef& InAudioInput, const Metasound::FFloatReadRef& InGain);
 
-		static const FNodeClassMetadata& GetNodeInfo();
+		static const Metasound::FNodeClassMetadata& GetNodeInfo();
 
-		virtual void BindInputs(FInputVertexInterfaceData& InOutVertexData) override;
-		virtual void BindOutputs(FOutputVertexInterfaceData& InOutVertexData) override;
-		static const FVertexInterface& GetVertexInterface();
-		static TUniquePtr<IOperator> CreateOperator(const FCreateOperatorParams& InParams, FBuildErrorArray& OutErrors);
+		virtual void BindInputs(Metasound::FInputVertexInterfaceData& InOutVertexData) override;
+		virtual void BindOutputs(Metasound::FOutputVertexInterfaceData& InOutVertexData) override;
+		static const Metasound::FVertexInterface& GetVertexInterface();
+		static TUniquePtr<Metasound::IOperator> CreateOperator(const Metasound::FBuildOperatorParams& InParams, Metasound::FBuildResults& OutResults);
 
 		void Execute();
 
 	private:
-		FAudioBufferReadRef	 AudioInput;
-		FAudioBufferWriteRef AudioOutput;
+		Metasound::FAudioBufferReadRef	AudioInput;
+		Metasound::FAudioBufferWriteRef AudioOutput;
 
 		DSPProcessing::FGain GainDSPProcessor;
 
-		FFloatReadRef Gain;
+		Metasound::FFloatReadRef Gain;
 	};
 
 
 	//------------------------------------------------------------------------------------
 	// FGainNode
 	//------------------------------------------------------------------------------------
-	class FGainNode : public FNodeFacade
+	class FGainNode : public Metasound::FNodeFacade
 	{
 	public:
 		// Constructor used by the Metasound Frontend.
-		FGainNode(const FNodeInitData& InitData)
-			: FNodeFacade(InitData.InstanceName, InitData.InstanceID, TFacadeOperatorClass<FGainOperator>())
+		FGainNode(const Metasound::FNodeInitData& InitData)
+			: Metasound::FNodeFacade(InitData.InstanceName, InitData.InstanceID, Metasound::TFacadeOperatorClass<FGainOperator>())
 		{
 
 		}

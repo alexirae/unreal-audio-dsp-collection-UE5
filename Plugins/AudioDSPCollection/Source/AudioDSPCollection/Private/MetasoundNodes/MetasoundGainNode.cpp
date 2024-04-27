@@ -1,9 +1,11 @@
 #include "MetasoundNodes/MetasoundGainNode.h"
 
-#define LOCTEXT_NAMESPACE "MetasoundDSPCollection_GainNode"
+#define LOCTEXT_NAMESPACE "DSPCollection_MetasoundGainNode"
 
-namespace Metasound
+namespace DSPCollection
 {
+	using namespace Metasound;
+
 	namespace GainNode
 	{
 		METASOUND_PARAM(InParamNameAudioInput, "In",   "Audio input.")
@@ -31,12 +33,12 @@ namespace Metasound
 			Info.ClassName         = { TEXT("MetasoundDSPCollection"), TEXT("Gain"), TEXT("Audio") };
 			Info.MajorVersion      = 1;
 			Info.MinorVersion      = 1;
-			Info.DisplayName       = LOCTEXT("Metasound_GainDisplayName", "Gain");
-			Info.Description       = LOCTEXT("Metasound_GainNodeDescription", "Applies gain to the audio input.");
-			Info.Author            = PluginAuthor;
+			Info.DisplayName       = LOCTEXT("DSPCollection_GainDisplayName",     "Gain");
+			Info.Description       = LOCTEXT("DSPCollection_GainNodeDescription", "Applies gain to the audio input.");
+			Info.Author            = "Alex Perez";
 			Info.PromptIfMissing   = PluginNodeMissingPrompt;
 			Info.DefaultInterface  = GetVertexInterface();
-			Info.CategoryHierarchy = { LOCTEXT("Metasound_GainNodeCategory", "Utils") };
+			Info.CategoryHierarchy = { LOCTEXT("DSPCollection_GainNodeCategory", "Saturation") };
 
 			return Info;
 		};
@@ -79,27 +81,23 @@ namespace Metasound
 		return Interface;
 	}
 
-	TUniquePtr<IOperator> FGainOperator::CreateOperator(const FCreateOperatorParams& InParams, FBuildErrorArray& OutErrors)
+	TUniquePtr<IOperator> FGainOperator::CreateOperator(const FBuildOperatorParams& InParams, FBuildResults& OutResults)
 	{
 		using namespace GainNode;
 
-		const FDataReferenceCollection& InputCollection = InParams.InputDataReferences;
-		const FInputVertexInterface& InputInterface     = GetVertexInterface().GetInputInterface();
-
-		FAudioBufferReadRef AudioIn = InputCollection.GetDataReadReferenceOrConstruct<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput),					 InParams.OperatorSettings);
-		FFloatReadRef InGain        = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamNameGain), InParams.OperatorSettings);
+		FAudioBufferReadRef AudioIn = InParams.InputData.GetOrConstructDataReadReference<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
+		FFloatReadRef InGain        = InParams.InputData.GetOrCreateDefaultDataReadReference<float>   (METASOUND_GET_PARAM_NAME(InParamNameGain),       InParams.OperatorSettings);
 
 		return MakeUnique<FGainOperator>(InParams.OperatorSettings, AudioIn, InGain);
 	}
 
 	void FGainOperator::Execute()
 	{
+		GainDSPProcessor.SetGain(*Gain);
+
 		const float* InputAudio = AudioInput->GetData();
 		float* OutputAudio      = AudioOutput->GetData();
-
-		const int32 NumSamples = AudioInput->Num();
-
-		GainDSPProcessor.SetGain(*Gain);
+		const int32 NumSamples  = AudioInput->Num();
 
 		GainDSPProcessor.ProcessAudioBuffer(InputAudio, OutputAudio, NumSamples);
 	}

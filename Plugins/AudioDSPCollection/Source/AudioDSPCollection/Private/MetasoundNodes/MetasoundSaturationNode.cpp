@@ -1,20 +1,9 @@
 #include "MetasoundNodes/MetasoundSaturationNode.h"
 
-#define LOCTEXT_NAMESPACE "MetasoundDSPCollection_SaturationNode"
+#define LOCTEXT_NAMESPACE "DSPCollection_MetasoundSaturationNode"
 
 namespace Metasound
 {
-	namespace SaturationNode
-	{
-		METASOUND_PARAM(InParamNameAudioInput,     "In",              "Audio input.")
-		METASOUND_PARAM(InParamNameGain,           "Gain",            "The amount of gain to apply to the input signal. Range = [0.0, 100.0]")
-		METASOUND_PARAM(InParamNameBias,           "Bias",            "The amount of DC bias to apply to the input signal, this generates even harmonics in the saturated signal. Range = [-1.0, 1.0]")
-		METASOUND_PARAM(InParamNameMix,            "Mix",             "The amount of mix between the saturated signal and the direct input signal. Range = [0.0, 100.0]")
-		METASOUND_PARAM(InParamNameOutLevelDb,     "Out Level (dB)",  "The amount of gain (in dB) to apply to the output signal. Range = [-96dB, +24dB]")
-		METASOUND_PARAM(InParamNameSaturationType, "Saturation Type", "Saturation algorithm to use to process the audio.")
-		METASOUND_PARAM(OutParamNameAudio,         "Out",             "Audio output.")
-	}
-
 	DEFINE_METASOUND_ENUM_BEGIN(DSPProcessing::ESaturationType, FEnumESaturationType, "SaturationType")
 		DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Tape,              "TapeDescription",              "Tape",              "TapeTT",              "Tape Saturation"),
 		DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::Tape2,             "Tape2Description",             "Tape2",             "Tape2TT",             "Tape Saturation (HQ)"),
@@ -29,6 +18,22 @@ namespace Metasound
 		DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::HalfWaveRectifier, "HalfWaveRectifierDescription", "HalfWaveRectifier", "HalfWaveRectifierTT", "Half Wave Rectifier Saturation"),
 		DEFINE_METASOUND_ENUM_ENTRY(DSPProcessing::ESaturationType::FullWaveRectifier, "FullWaveRectifierDescription", "FullWaveRectifier", "FullWaveRectifierTT", "Full Wave Rectifier Saturation")
 	DEFINE_METASOUND_ENUM_END()
+}
+
+namespace DSPCollection
+{
+	using namespace Metasound;
+
+	namespace SaturationNode
+	{
+		METASOUND_PARAM(InParamNameAudioInput,     "In",              "Audio input.")
+		METASOUND_PARAM(InParamNameGain,           "Gain",            "The amount of gain to apply to the input signal. Range = [0.0, 100.0]")
+		METASOUND_PARAM(InParamNameBias,           "Bias",            "The amount of DC bias to apply to the input signal, this generates even harmonics in the saturated signal. Range = [-1.0, 1.0]")
+		METASOUND_PARAM(InParamNameMix,            "Mix",             "The amount of mix between the saturated signal and the direct input signal. Range = [0.0, 100.0]")
+		METASOUND_PARAM(InParamNameOutLevelDb,     "Out Level (dB)",  "The amount of gain (in dB) to apply to the output signal. Range = [-96dB, +24dB]")
+		METASOUND_PARAM(InParamNameSaturationType, "Saturation Type", "Saturation algorithm to use to process the audio.")
+		METASOUND_PARAM(OutParamNameAudio,         "Out",             "Audio output.")
+	}
 
 	FSaturationOperator::FSaturationOperator(const FOperatorSettings& InSettings, 
 											 const FAudioBufferReadRef& InAudioInput, 
@@ -65,12 +70,12 @@ namespace Metasound
 			Info.ClassName         = { TEXT("MetasoundDSPCollection"), TEXT("Saturation"), TEXT("Audio") };
 			Info.MajorVersion      = 1;
 			Info.MinorVersion      = 1;
-			Info.DisplayName       = LOCTEXT("Metasound_SaturationDisplayName", "Saturation");
-			Info.Description       = LOCTEXT("Metasound_SaturationNodeDescription", "Applies saturation to the audio input.");
-			Info.Author            = PluginAuthor;
+			Info.DisplayName       = LOCTEXT("DSPCollection_SaturationDisplayName",     "Saturation");
+			Info.Description       = LOCTEXT("DSPCollection_SaturationNodeDescription", "Applies saturation to the audio input.");
+			Info.Author            = "Alex Perez";
 			Info.PromptIfMissing   = PluginNodeMissingPrompt;
 			Info.DefaultInterface  = GetVertexInterface();
-			Info.CategoryHierarchy = { LOCTEXT("Metasound_SaturationNodeCategory", "Saturation") };
+			Info.CategoryHierarchy = { LOCTEXT("DSPCollection_SaturationNodeCategory", "Saturation") };
 
 			return Info;
 		};
@@ -121,35 +126,33 @@ namespace Metasound
 		return Interface;
 	}
 
-	TUniquePtr<IOperator> FSaturationOperator::CreateOperator(const FCreateOperatorParams& InParams, FBuildErrorArray& OutErrors)
+	TUniquePtr<IOperator> FSaturationOperator::CreateOperator(const FBuildOperatorParams& InParams, FBuildResults& OutResults)
 	{
 		using namespace SaturationNode;
 
-		const FDataReferenceCollection& InputCollection = InParams.InputDataReferences;
-		const FInputVertexInterface& InputInterface     = GetVertexInterface().GetInputInterface();
+		FAudioBufferReadRef AudioIn = InParams.InputData.GetOrConstructDataReadReference<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
 
-		FAudioBufferReadRef AudioIn = InputCollection.GetDataReadReferenceOrConstruct<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
-		FFloatReadRef InGain        = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamNameGain), InParams.OperatorSettings);
-		FFloatReadRef InBias        = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamNameBias), InParams.OperatorSettings);
-		FFloatReadRef InMix         = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamNameMix), InParams.OperatorSettings);
-		FFloatReadRef InOutLevelDb  = InputCollection.GetDataReadReferenceOrConstructWithVertexDefault<float>(InputInterface, METASOUND_GET_PARAM_NAME(InParamNameOutLevelDb), InParams.OperatorSettings);
-		FEnumSaturationReadRef InSaturationType = InputCollection.GetDataReadReferenceOrConstruct<FEnumESaturationType>(METASOUND_GET_PARAM_NAME(InParamNameSaturationType));
+		FFloatReadRef InGain       = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameGain),       InParams.OperatorSettings);
+		FFloatReadRef InBias       = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameBias),       InParams.OperatorSettings);
+		FFloatReadRef InMix        = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameMix),        InParams.OperatorSettings);
+		FFloatReadRef InOutLevelDb = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameOutLevelDb), InParams.OperatorSettings);
+
+		FEnumSaturationReadRef InSaturationType = InParams.InputData.GetOrConstructDataReadReference<FEnumESaturationType>(METASOUND_GET_PARAM_NAME(InParamNameSaturationType));
 
 		return MakeUnique<FSaturationOperator>(InParams.OperatorSettings, AudioIn, InGain, InBias, InMix, InOutLevelDb, InSaturationType);
 	}
 
 	void FSaturationOperator::Execute()
 	{
-		const float* InputAudio = AudioInput->GetData();
-		float* OutputAudio      = AudioOutput->GetData();
-
-		const int32 NumSamples = AudioInput->Num();
-
 		SaturationDSPProcessor.SetSaturationType(*SaturationType); // Set SaturationType first since Gain depends on it
 		SaturationDSPProcessor.SetGain(*Gain);
 		SaturationDSPProcessor.SetBias(*Bias);
 		SaturationDSPProcessor.SetMix(*Mix);
 		SaturationDSPProcessor.SetOutLevelDb(*OutLevelDb);
+
+		const float* InputAudio = AudioInput->GetData();
+		float* OutputAudio      = AudioOutput->GetData();
+		const int32 NumSamples  = AudioInput->Num();
 
 		SaturationDSPProcessor.ProcessAudioBuffer(InputAudio, OutputAudio, NumSamples);
 	}

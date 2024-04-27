@@ -7,10 +7,10 @@
 void FAudioDSPCollectionModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	Metasound::Editor::IMetasoundEditorModule& MetaSoundEditorModule = FModuleManager::GetModuleChecked<Metasound::Editor::IMetasoundEditorModule>("MetaSoundEditor");
-	MetaSoundEditorModule.RegisterPinType("Enum:SaturationType", "Int32");
-
 	FMetasoundFrontendRegistryContainer::Get()->RegisterPendingNodes();
+
+	Metasound::Editor::IMetasoundEditorModule& MetaSoundEditorModule = FModuleManager::LoadModuleChecked<Metasound::Editor::IMetasoundEditorModule>("MetaSoundEditor");
+	MetaSoundEditorModule.RegisterPinType("Enum:SaturationType", "Int32");
 }
 
 void FAudioDSPCollectionModule::ShutdownModule()
