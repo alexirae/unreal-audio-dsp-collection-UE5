@@ -6,10 +6,7 @@
 //------------------------------------------------------------------------------------
 void FSubmixEffectGain::Init(const FSoundEffectSubmixInitData& InitData)
 {
-	const float SampleRate            = InitData.SampleRate;
-	constexpr float SmoothingTimeInMs = 21.33f;
-
-	GainDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
+	GainDSPProcessor.Init(InitData.SampleRate);
 }
 
 void FSubmixEffectGain::OnPresetChanged()

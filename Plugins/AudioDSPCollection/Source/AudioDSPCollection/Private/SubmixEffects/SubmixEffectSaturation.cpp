@@ -42,15 +42,7 @@ namespace
 //------------------------------------------------------------------------------------
 void FSubmixEffectSaturation::Init(const FSoundEffectSubmixInitData& InitData)
 {
-	SaturationDSPProcessor.Init();
-
-	const float SampleRate            = InitData.SampleRate;
-	constexpr float SmoothingTimeInMs = 21.33f;
-
-	SaturationDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
-	SaturationDSPProcessor.InitBiasParam(SmoothingTimeInMs, SampleRate);
-	SaturationDSPProcessor.InitMixParam(SmoothingTimeInMs, SampleRate);
-	SaturationDSPProcessor.InitOutLevelParam(SmoothingTimeInMs, SampleRate);
+	SaturationDSPProcessor.Init(InitData.SampleRate);
 }
 
 void FSubmixEffectSaturation::OnPresetChanged()

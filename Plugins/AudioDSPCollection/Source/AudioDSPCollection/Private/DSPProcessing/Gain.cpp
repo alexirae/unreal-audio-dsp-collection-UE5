@@ -2,38 +2,39 @@
 
 namespace DSPProcessing
 {
-	void FGain::InitGainParam(float SmoothingTimeInMs, float SampleRate)
+	void FGain::Init(const float InSampleRate)
 	{
-		GainParamSmoother.Init(SmoothingTimeInMs, SampleRate);
+		constexpr float SmoothingTimeInMs = 21.33f;
+		GainParamSmoother.Init(SmoothingTimeInMs, InSampleRate);
 	}
 
-	void FGain::SetGain(float InGain)
+	void FGain::SetGain(const float InGain)
 	{
 		GainParamSmoother.SetNewParamValue(InGain);
 	}
 
-	void FGain::ProcessAudioBuffer(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FGain::ProcessAudioBuffer(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		//TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FGain::ProcessAudioBuffer"))
 
 		// Skip processing if Gain == 0
 		if (GainParamSmoother.GetValue() == 0.0f)
 		{
-			FMemory::Memzero(OutBuffer, sizeof(float) * NumSamples);
+			FMemory::Memzero(OutBuffer, sizeof(float) * InNumSamples);
 			return;
 		}
 
 		// Skip processing if Gain == 1
 		if (GainParamSmoother.GetValue() == 1.0f)
 		{
-			FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+			FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * InNumSamples);
 			return;
 		}
 
-		ProcessGain(InBuffer, OutBuffer, NumSamples);
+		ProcessGain(InBuffer, OutBuffer, InNumSamples);
 	}
 
-	void FGain::ProcessGain(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FGain::ProcessGain(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
 		//for (int32 i = 0; i < NumSamples; ++i)
@@ -42,7 +43,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain = GainParamSmoother.GetValue();
 

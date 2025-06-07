@@ -45,15 +45,7 @@ void FSourceEffectSaturation::Init(const FSoundEffectSourceInitData& InitData)
 	bIsActive   = true;
 	NumChannels = InitData.NumSourceChannels;
 
-	SaturationDSPProcessor.Init();
-
-	const float SampleRate            = InitData.SampleRate;
-	constexpr float SmoothingTimeInMs = 21.33f;
-
-	SaturationDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
-	SaturationDSPProcessor.InitBiasParam(SmoothingTimeInMs, SampleRate);
-	SaturationDSPProcessor.InitMixParam(SmoothingTimeInMs, SampleRate);
-	SaturationDSPProcessor.InitOutLevelParam(SmoothingTimeInMs, SampleRate);
+	SaturationDSPProcessor.Init(InitData.SampleRate);
 }
 
 void FSourceEffectSaturation::OnPresetChanged()

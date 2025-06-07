@@ -50,15 +50,7 @@ namespace DSPCollection
 		, OutLevelDb(InOutLevelDb)
 		, SaturationType(InSaturationTypeType)
 	{
-		SaturationDSPProcessor.Init();
-
-		const float SampleRate            = InSettings.GetSampleRate();
-		constexpr float SmoothingTimeInMs = 21.33f;
-
-		SaturationDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
-		SaturationDSPProcessor.InitBiasParam(SmoothingTimeInMs, SampleRate);
-		SaturationDSPProcessor.InitMixParam(SmoothingTimeInMs, SampleRate);
-		SaturationDSPProcessor.InitOutLevelParam(SmoothingTimeInMs, SampleRate);
+		SaturationDSPProcessor.Init(InSettings.GetSampleRate());
 	}
 
 		const FNodeClassMetadata& FSaturationOperator::GetNodeInfo()
@@ -130,14 +122,14 @@ namespace DSPCollection
 	{
 		using namespace SaturationNode;
 
-		FAudioBufferReadRef AudioIn = InParams.InputData.GetOrConstructDataReadReference<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
+		FAudioBufferReadRef AudioIn = InParams.InputData.GetOrCreateDefaultDataReadReference<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
 
 		FFloatReadRef InGain       = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameGain),       InParams.OperatorSettings);
 		FFloatReadRef InBias       = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameBias),       InParams.OperatorSettings);
 		FFloatReadRef InMix        = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameMix),        InParams.OperatorSettings);
 		FFloatReadRef InOutLevelDb = InParams.InputData.GetOrCreateDefaultDataReadReference<float>(METASOUND_GET_PARAM_NAME(InParamNameOutLevelDb), InParams.OperatorSettings);
 
-		FEnumSaturationReadRef InSaturationType = InParams.InputData.GetOrConstructDataReadReference<FEnumESaturationType>(METASOUND_GET_PARAM_NAME(InParamNameSaturationType));
+		FEnumSaturationReadRef InSaturationType = InParams.InputData.GetOrCreateDefaultDataReadReference<FEnumESaturationType>(METASOUND_GET_PARAM_NAME(InParamNameSaturationType), InParams.OperatorSettings);
 
 		return MakeUnique<FSaturationOperator>(InParams.OperatorSettings, AudioIn, InGain, InBias, InMix, InOutLevelDb, InSaturationType);
 	}
@@ -155,6 +147,12 @@ namespace DSPCollection
 		const int32 NumSamples  = AudioInput->Num();
 
 		SaturationDSPProcessor.ProcessAudioBuffer(InputAudio, OutputAudio, NumSamples);
+	}
+	
+	void FSaturationOperator::Reset(const IOperator::FResetParams& InParams)
+	{
+		AudioOutput->Zero();
+		SaturationDSPProcessor.Init(InParams.OperatorSettings.GetSampleRate());
 	}
 
 	METASOUND_REGISTER_NODE(FSaturationNode)

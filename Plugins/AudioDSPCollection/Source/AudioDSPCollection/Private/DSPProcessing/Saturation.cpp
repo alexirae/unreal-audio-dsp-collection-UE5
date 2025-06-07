@@ -5,7 +5,7 @@ namespace DSPProcessing
 {
 	namespace SaturationUtils
 	{
-		FORCEINLINE float FastTanh(float x)
+		FORCEINLINE float FastTanh(const float x)
 		{
 			const float AbsX = FMath::Abs(x);
 			const float XSqr = x * x;
@@ -43,32 +43,17 @@ namespace DSPProcessing
 		
 	}
 
-	void FSaturation::Init()
+	void FSaturation::Init(const float InSampleRate)
 	{
-		
+		constexpr float SmoothingTimeInMs = 21.33f;
+
+		GainParamSmoother.Init(SmoothingTimeInMs, InSampleRate);
+		BiasParamSmoother.Init(SmoothingTimeInMs, InSampleRate);
+		MixParamSmoother.Init(SmoothingTimeInMs, InSampleRate);
+		OutLevelParamSmoother.Init(SmoothingTimeInMs, InSampleRate);
 	}
 
-	void FSaturation::InitGainParam(float SmoothingTimeInMs, float SampleRate)
-	{
-		GainParamSmoother.Init(SmoothingTimeInMs, SampleRate);
-	}
-
-	void FSaturation::InitBiasParam(float SmoothingTimeInMs, float SampleRate)
-	{
-		BiasParamSmoother.Init(SmoothingTimeInMs, SampleRate);
-	}
-
-	void FSaturation::InitMixParam(float SmoothingTimeInMs, float SampleRate)
-	{
-		MixParamSmoother.Init(SmoothingTimeInMs, SampleRate);
-	}
-
-	void FSaturation::InitOutLevelParam(float SmoothingTimeInMs, float SampleRate)
-	{
-		OutLevelParamSmoother.Init(SmoothingTimeInMs, SampleRate);
-	}
-
-	void FSaturation::SetSaturationType(ESaturationType InSaturationType)
+	void FSaturation::SetSaturationType(const ESaturationType InSaturationType)
 	{
 		SaturationType = InSaturationType;
 
@@ -114,51 +99,51 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::SetGain(float InGain)
+	void FSaturation::SetGain(const float InGain)
 	{
-		InGain = FMath::Clamp(InGain, 0.0f, 100.0f) * 0.01f; // Clamp and Normalize [0, 1]
+		float Gain = FMath::Clamp(InGain, 0.0f, 100.0f) * 0.01f; // Clamp and Normalize [0, 1]
 
 		switch (SaturationType)
 		{
 			default:
 			case ESaturationType::Tape:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 20.0f);
-				GainParamSmoother.SetNewParamValue(InGain);	 
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 1.0f, 20.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Tape2:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 0.000001f, 35.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 0.000001f, 35.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Overdrive:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 20.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 1.0f, 20.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Tube:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 40.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 1.0f, 40.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Tube2:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 45.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 1.0f, 45.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Distortion:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 0.000001f, 80.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 0.000001f, 80.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Metal:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 1.0f, 100.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Fuzz:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 0.5f, 35.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 0.5f, 35.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::HardClip:
-				InGain = AudioUtils::MapFromNormalizedRange(InGain, 1.0f, 100.0f);
-				GainParamSmoother.SetNewParamValue(InGain);
+				Gain = AudioUtils::MapFromNormalizedRange(Gain, 1.0f, 100.0f);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::Foldback:
-				GainParamSmoother.SetNewParamValue(InGain);
+				GainParamSmoother.SetNewParamValue(Gain);
 				break;
 			case ESaturationType::HalfWaveRectifier:
 				break;
@@ -167,52 +152,52 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::SetBias(float InBias)
+	void FSaturation::SetBias(const float InBias)
 	{
-		InBias = FMath::Clamp(InBias, -1.0f, 1.0f);
-		BiasParamSmoother.SetNewParamValue(InBias);
+		const float Bias = FMath::Clamp(InBias, -1.0f, 1.0f);
+		BiasParamSmoother.SetNewParamValue(Bias);
 	}
 
-	void FSaturation::SetMix(float InMixAmount)
+	void FSaturation::SetMix(const float InMixAmount)
 	{
-		InMixAmount = FMath::Clamp(InMixAmount, 0.0f, 100.0f) * 0.01f; // Clamp and Normalize
-		MixParamSmoother.SetNewParamValue(InMixAmount);
+		const float MixAmount = FMath::Clamp(InMixAmount, 0.0f, 100.0f) * 0.01f; // Clamp and Normalize
+		MixParamSmoother.SetNewParamValue(MixAmount);
 	}
 
 	void FSaturation::SetOutLevelDb(float InOutLevelDb)
 	{
-		InOutLevelDb = FMath::Clamp(InOutLevelDb, -96.0f, 24.0f);
-		const float InOutLevelLinear = (InOutLevelDb == -96.0f) ? 0.0f : Audio::ConvertToLinear(InOutLevelDb);
+		const float OutLevelDb = FMath::Clamp(InOutLevelDb, -96.0f, 24.0f);
+		const float InOutLevelLinear = (OutLevelDb == -96.0f) ? 0.0f : Audio::ConvertToLinear(OutLevelDb);
 
 		OutLevelParamSmoother.SetNewParamValue(InOutLevelLinear);
 	}
 
-	void FSaturation::ProcessAudioBuffer(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::ProcessAudioBuffer(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		//TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FSaturation::ProcessAudioBuffer"))
 		
 		// Skip processing if OutLevel == 0
 		if (OutLevelParamSmoother.GetValue() == 0.0f)
 		{
-			FMemory::Memzero(OutBuffer, sizeof(float) * NumSamples);
+			FMemory::Memzero(OutBuffer, sizeof(float) * InNumSamples);
 			return;
 		}
 
 		// Skip processing if OutLevel==1 and Mix == 0
 		if (OutLevelParamSmoother.GetValue() == 1.0f && MixParamSmoother.GetValue() == 0.0f)
 		{
-			FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * NumSamples);
+			FMemory::Memcpy(OutBuffer, InBuffer, sizeof(float) * InNumSamples);
 			return;
 		}
 
 		// Process with selected saturation algorithm
-		(this->*(SelectedSaturationTypePtr))(InBuffer, OutBuffer, NumSamples);
+		(this->*(SelectedSaturationTypePtr))(InBuffer, OutBuffer, InNumSamples);
 	}
 
-	void FSaturation::Tape(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Tape(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -233,7 +218,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -268,10 +253,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Tape2(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Tape2(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -292,7 +277,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -332,10 +317,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Overdrive(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Overdrive(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -349,7 +334,7 @@ namespace DSPProcessing
 		//
 		//	  const float Gain_x_ClampIn	   = Gain * FMath::Clamp(In_Plus_Bias, -1.0f, 1.0f);
 		//	  const float Clamp_Gain_x_ClampIn = FMath::Clamp(Gain_x_ClampIn, -1.0f, 1.0f);
-
+		//
 		//	  float Out = 0.5f * FMath::Clamp(Gain_x_In, -1.0f, 1.0f) * (3.0f - Clamp_Gain_x_ClampIn * Clamp_Gain_x_ClampIn);
 		//
 		//	  Out = Out * Mix + (1.0f - Mix) * In;
@@ -359,7 +344,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -405,10 +390,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Tube(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Tube(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -430,7 +415,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -481,10 +466,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Tube2(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Tube2(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -494,11 +479,11 @@ namespace DSPProcessing
 		//	  const float In = InBuffer[i];
 		//
 		//	  const float In_Plus_Bias = In + Bias;
-
+		//
 		//	  float Out = FMath::Pow(FMath::Clamp(In_Plus_Bias, -1.0f, 1.0f) + 1.0f, Gain) - 1.0f;
 		//
 		//	  Out = FMath::Clamp(Out, -1.0f, 1.0f);
-
+		//
 		//	  Out = Out * Mix + (1.0f - Mix) * In;
 		//	  Out = Out * OutLevel;
 		//
@@ -506,7 +491,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -546,10 +531,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Distortion(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Distortion(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -572,7 +557,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -612,10 +597,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Metal(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Metal(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -626,12 +611,12 @@ namespace DSPProcessing
 		//
 		//	  const float In_Plus_Bias = In + Bias;
 		//	  const float Gain_x_In	   = Gain * In_Plus_Bias;
-
+		//
 		//	  const float Abs_Clamp_Gain_x_In			= FMath::Abs(FMath::Clamp(Gain_x_In, -1.0f, 1.0f));
 		//	  const float Two_Minus_Abs_Clamp_Gain_x_In = 2.0f - Abs_Clamp_Gain_x_In;
-
+		//
 		//	  const float Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In = Abs_Clamp_Gain_x_In * Two_Minus_Abs_Clamp_Gain_x_In;
-
+		//
 		//	  float Out = (In_Plus_Bias > 0.0f) ? Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In : -Abs_Clamp_Gain_x_In_x_Two_Minus_Abs_Clamp_Gain_x_In;
 		//
 		//	  Out = Out * Mix + (1.0f - Mix) * In;
@@ -641,7 +626,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -695,10 +680,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Fuzz(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Fuzz(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -723,7 +708,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -767,10 +752,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::HardClip(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::HardClip(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -791,7 +776,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -826,10 +811,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::Foldback(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::Foldback(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Gain	   = GainParamSmoother.GetValue();
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
@@ -854,7 +839,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentGain     = GainParamSmoother.GetValue();
 			const float CurrentBias     = BiasParamSmoother.GetValue();
@@ -913,10 +898,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::HalfWaveRectifier(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::HalfWaveRectifier(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
 		//	  const float OutLevel = OutLevelParamSmoother.GetValue();
@@ -936,7 +921,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{ 
 			const float CurrentBias     = BiasParamSmoother.GetValue();
 			const float CurrentOutLevel = OutLevelParamSmoother.GetValue();
@@ -979,10 +964,10 @@ namespace DSPProcessing
 		}
 	}
 
-	void FSaturation::FullWaveRectifier(const float* InBuffer, float* OutBuffer, int32 NumSamples)
+	void FSaturation::FullWaveRectifier(const float* InBuffer, float* OutBuffer, const int32 InNumSamples)
 	{
 		// Sequential version
-		//for (int32 i = 0; i < NumSamples; ++i)
+		//for (int32 i = 0; i < InNumSamples; ++i)
 		//{
 		//	  const float Bias	   = BiasParamSmoother.GetValue();
 		//	  const float OutLevel = OutLevelParamSmoother.GetValue();
@@ -1002,7 +987,7 @@ namespace DSPProcessing
 		//}
 
 		// Vectorized version
-		for (int32 i = 0; i < NumSamples; i += 4)
+		for (int32 i = 0; i < InNumSamples; i += 4)
 		{
 			const float CurrentBias     = BiasParamSmoother.GetValue();
 			const float CurrentOutLevel = OutLevelParamSmoother.GetValue();

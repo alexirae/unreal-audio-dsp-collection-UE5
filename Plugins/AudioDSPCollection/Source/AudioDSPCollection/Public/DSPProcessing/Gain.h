@@ -8,14 +8,14 @@ namespace DSPProcessing
 	class AUDIODSPCOLLECTION_API FGain
 	{
 	public:
-		void InitGainParam(float SmoothingTimeInMs, float SampleRate);
+		void Init(const float InSampleRate);
 
-		void SetGain(float InGain);
+		void SetGain(const float InGain);
 
-		void ProcessAudioBuffer(const float* InBuffer, float* OutBuffer, int32 NumSamples);
+		void ProcessAudioBuffer(const float* InBuffer, float* OutBuffer, const int32 InNumSamples);
 
 	private:
-		FORCEINLINE void ProcessGain(const float* InBuffer, float* OutBuffer, int32 NumSamples);
+		FORCEINLINE void ProcessGain(const float* InBuffer, float* OutBuffer, const int32 InNumSamples);
 
 		ParamSmootherLPF GainParamSmoother;
 	};

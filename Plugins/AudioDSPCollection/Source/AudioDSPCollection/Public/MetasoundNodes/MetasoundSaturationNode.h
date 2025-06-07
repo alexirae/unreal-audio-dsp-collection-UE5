@@ -9,9 +9,6 @@ namespace Metasound
 	
 namespace DSPCollection
 {
-	//------------------------------------------------------------------------------------
-	// FSaturationOperator
-	//------------------------------------------------------------------------------------
 	class FSaturationOperator : public Metasound::TExecutableOperator<FSaturationOperator>
 	{
 	public:
@@ -27,10 +24,13 @@ namespace DSPCollection
 
 		virtual void BindInputs(Metasound::FInputVertexInterfaceData& InOutVertexData) override;
 		virtual void BindOutputs(Metasound::FOutputVertexInterfaceData& InOutVertexData) override;
+		
 		static const Metasound::FVertexInterface& GetVertexInterface();
 		static TUniquePtr<Metasound::IOperator> CreateOperator(const Metasound::FBuildOperatorParams& InParams, Metasound::FBuildResults& OutResults);
 
 		void Execute();
+		
+		void Reset(const IOperator::FResetParams& InParams);
 
 	private:
 		DSPProcessing::FSaturation SaturationDSPProcessor;
@@ -45,18 +45,5 @@ namespace DSPCollection
 		Metasound::FEnumSaturationReadRef SaturationType;
 	};
 
-
-	//------------------------------------------------------------------------------------
-	// FSaturationNode
-	//------------------------------------------------------------------------------------
-	class FSaturationNode : public Metasound::FNodeFacade
-	{
-	public:
-		// Constructor used by the Metasound Frontend.
-		FSaturationNode(const Metasound::FNodeInitData& InitData)
-			: Metasound::FNodeFacade(InitData.InstanceName, InitData.InstanceID, Metasound::TFacadeOperatorClass<FSaturationOperator>())
-		{
-
-		}
-	};
+	using FSaturationNode = Metasound::TNodeFacade<FSaturationOperator>;
 }

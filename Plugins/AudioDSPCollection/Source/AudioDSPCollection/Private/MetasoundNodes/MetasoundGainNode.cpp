@@ -18,10 +18,8 @@ namespace DSPCollection
 		, AudioOutput(FAudioBufferWriteRef::CreateNew(InSettings))
 		, Gain(InGain)
 	{
-		const float SampleRate            = InSettings.GetSampleRate();
-		constexpr float SmoothingTimeInMs = 21.33f;
 
-		GainDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
+		GainDSPProcessor.Init(InSettings.GetSampleRate());
 	}
 
 	const FNodeClassMetadata& FGainOperator::GetNodeInfo()
@@ -85,8 +83,8 @@ namespace DSPCollection
 	{
 		using namespace GainNode;
 
-		FAudioBufferReadRef AudioIn = InParams.InputData.GetOrConstructDataReadReference<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
-		FFloatReadRef InGain        = InParams.InputData.GetOrCreateDefaultDataReadReference<float>   (METASOUND_GET_PARAM_NAME(InParamNameGain),       InParams.OperatorSettings);
+		FAudioBufferReadRef AudioIn = InParams.InputData.GetOrCreateDefaultDataReadReference<FAudioBuffer>(METASOUND_GET_PARAM_NAME(InParamNameAudioInput), InParams.OperatorSettings);
+		FFloatReadRef InGain        = InParams.InputData.GetOrCreateDefaultDataReadReference<float>       (METASOUND_GET_PARAM_NAME(InParamNameGain),       InParams.OperatorSettings);
 
 		return MakeUnique<FGainOperator>(InParams.OperatorSettings, AudioIn, InGain);
 	}
@@ -100,6 +98,12 @@ namespace DSPCollection
 		const int32 NumSamples  = AudioInput->Num();
 
 		GainDSPProcessor.ProcessAudioBuffer(InputAudio, OutputAudio, NumSamples);
+	}
+	
+	void FGainOperator::Reset(const IOperator::FResetParams& InParams)
+	{
+		AudioOutput->Zero();
+		GainDSPProcessor.Init(InParams.OperatorSettings.GetSampleRate());
 	}
 
 	METASOUND_REGISTER_NODE(FGainNode)

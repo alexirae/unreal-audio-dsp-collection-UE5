@@ -4,9 +4,6 @@
 
 namespace DSPCollection
 {
-	//------------------------------------------------------------------------------------
-	// FGainOperator
-	//------------------------------------------------------------------------------------
 	class FGainOperator : public Metasound::TExecutableOperator<FGainOperator>
 	{
 	public:
@@ -16,10 +13,13 @@ namespace DSPCollection
 
 		virtual void BindInputs(Metasound::FInputVertexInterfaceData& InOutVertexData) override;
 		virtual void BindOutputs(Metasound::FOutputVertexInterfaceData& InOutVertexData) override;
+		
 		static const Metasound::FVertexInterface& GetVertexInterface();
 		static TUniquePtr<Metasound::IOperator> CreateOperator(const Metasound::FBuildOperatorParams& InParams, Metasound::FBuildResults& OutResults);
 
 		void Execute();
+		
+		void Reset(const IOperator::FResetParams& InParams);
 
 	private:
 		Metasound::FAudioBufferReadRef	AudioInput;
@@ -30,18 +30,5 @@ namespace DSPCollection
 		Metasound::FFloatReadRef Gain;
 	};
 
-
-	//------------------------------------------------------------------------------------
-	// FGainNode
-	//------------------------------------------------------------------------------------
-	class FGainNode : public Metasound::FNodeFacade
-	{
-	public:
-		// Constructor used by the Metasound Frontend.
-		FGainNode(const Metasound::FNodeInitData& InitData)
-			: Metasound::FNodeFacade(InitData.InstanceName, InitData.InstanceID, Metasound::TFacadeOperatorClass<FGainOperator>())
-		{
-
-		}
-	};
+	using FGainNode = Metasound::TNodeFacade<FGainOperator>;
 }

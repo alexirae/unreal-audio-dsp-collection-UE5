@@ -9,10 +9,7 @@ void FSourceEffectGain::Init(const FSoundEffectSourceInitData& InitData)
 	bIsActive   = true;
 	NumChannels = InitData.NumSourceChannels;
 
-	const float SampleRate            = InitData.SampleRate;
-	constexpr float SmoothingTimeInMs = 21.33f;
-
-	GainDSPProcessor.InitGainParam(SmoothingTimeInMs, SampleRate);
+	GainDSPProcessor.Init(InitData.SampleRate);
 }
 
 void FSourceEffectGain::OnPresetChanged()
