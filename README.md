@@ -1,6 +1,6 @@
 # Unreal Audio DSP Collection (UE5)
 
-#### `[Current main branch version: UE5.6, for other versions check repo branches]`
+#### `[Current main branch version: UE5.7, for other versions check repo branches]`
 
 ![](https://user-images.githubusercontent.com/7047334/157249193-f3bbc3ca-d5ad-4e6f-a86b-b728568a224e.png)
 

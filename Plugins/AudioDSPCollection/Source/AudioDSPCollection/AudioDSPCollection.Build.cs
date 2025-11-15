@@ -5,21 +5,24 @@ public class AudioDSPCollection : ModuleRules
 	public AudioDSPCollection(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
+		bUseUnity = false;
+
 		PublicIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				// ... add public include paths required here ...
 
 			}
-			);
+		);
 				
 		
 		PrivateIncludePaths.AddRange(
-			new string[] {
+			new string[]
+			{
 				// ... add private include paths required here ...
 
 			}
-			);
+		);
 			
 		
 		PublicDependencyModuleNames.AddRange(
@@ -31,7 +34,7 @@ public class AudioDSPCollection : ModuleRules
                 "MetasoundFrontend",
 				"MetasoundGraphCore",
 			}
-			);
+		);
 			
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -42,7 +45,7 @@ public class AudioDSPCollection : ModuleRules
 				"Engine",
 				"SignalProcessing",
 			}
-			);
+		);
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(
@@ -51,6 +54,9 @@ public class AudioDSPCollection : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 
 			}
-			);
+		);
+		
+		PrivateDefinitions.Add("METASOUND_PLUGIN=AudioDSPCollection");
+        PrivateDefinitions.Add("METASOUND_MODULE=AudioDSPCollection");
 	}
 }

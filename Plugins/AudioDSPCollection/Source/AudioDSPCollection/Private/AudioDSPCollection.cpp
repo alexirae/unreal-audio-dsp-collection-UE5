@@ -1,13 +1,13 @@
 #include "AudioDSPCollection.h"
 #include "MetasoundEditorModule.h"
-#include "MetasoundFrontendRegistries.h"
+#include "MetasoundFrontendModuleRegistrationMacros.h"
 
 #define LOCTEXT_NAMESPACE "FAudioDSPCollectionModule"
 
 void FAudioDSPCollectionModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	FMetasoundFrontendRegistryContainer::Get()->RegisterPendingNodes();
+	METASOUND_REGISTER_ITEMS_IN_MODULE
 
 	Metasound::Editor::IMetasoundEditorModule& MetaSoundEditorModule = FModuleManager::LoadModuleChecked<Metasound::Editor::IMetasoundEditorModule>("MetaSoundEditor");
 	MetaSoundEditorModule.RegisterPinType("Enum:SaturationType", "Int32");
@@ -17,8 +17,11 @@ void FAudioDSPCollectionModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.	 For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	METASOUND_UNREGISTER_ITEMS_IN_MODULE
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
+METASOUND_IMPLEMENT_MODULE_REGISTRATION_LIST
+
 IMPLEMENT_MODULE(FAudioDSPCollectionModule, AudioDSPCollection)
