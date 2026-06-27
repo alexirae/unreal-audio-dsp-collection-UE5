@@ -1,22 +1,47 @@
 #include "AudioDSPCollection.h"
-#include "MetasoundEditorModule.h"
+
 #include "MetasoundFrontendModuleRegistrationMacros.h"
+
+#if WITH_EDITOR
+#include "MetasoundEditorModule.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "FAudioDSPCollectionModule"
 
+namespace FAudioDSPCollectionModulePrivate
+{
+	const FName SaturationTypePinDataTypeName(TEXT("Enum:SaturationType"));
+}
+
 void FAudioDSPCollectionModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+	using namespace FAudioDSPCollectionModulePrivate;
+
 	METASOUND_REGISTER_ITEMS_IN_MODULE
 
-	Metasound::Editor::IMetasoundEditorModule& MetaSoundEditorModule = FModuleManager::LoadModuleChecked<Metasound::Editor::IMetasoundEditorModule>("MetaSoundEditor");
-	MetaSoundEditorModule.RegisterPinType("Enum:SaturationType", "Int32");
+#if WITH_EDITOR
+	Metasound::Editor::IMetasoundEditorModule& MetaSoundEditorModule = FModuleManager::LoadModuleChecked<Metasound::Editor::IMetasoundEditorModule>(Metasound::Editor::IMetasoundEditorModule::ModuleName);
+
+	Metasound::Editor::FGraphPinParams PinParams;
+	PinParams.PinCategory = TEXT("Int32");
+
+	MetaSoundEditorModule.GetGraphPanelPinFactory()->RegisterPin(SaturationTypePinDataTypeName, PinParams);
+#endif
 }
 
 void FAudioDSPCollectionModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.	 For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	using namespace FAudioDSPCollectionModulePrivate;
+
+#if WITH_EDITOR
+	if (FModuleManager::Get().IsModuleLoaded(Metasound::Editor::IMetasoundEditorModule::ModuleName))
+	{
+		Metasound::Editor::IMetasoundEditorModule& MetaSoundEditorModule = FModuleManager::GetModuleChecked<Metasound::Editor::IMetasoundEditorModule>(Metasound::Editor::IMetasoundEditorModule::ModuleName);
+
+		MetaSoundEditorModule.GetGraphPanelPinFactory()->UnregisterPin(SaturationTypePinDataTypeName);
+	}
+#endif
+
 	METASOUND_UNREGISTER_ITEMS_IN_MODULE
 }
 

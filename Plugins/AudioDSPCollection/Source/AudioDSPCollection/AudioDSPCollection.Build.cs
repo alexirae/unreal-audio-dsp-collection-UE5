@@ -30,7 +30,6 @@ public class AudioDSPCollection : ModuleRules
 			{
 				// ... add public dependencies that you statically link with here ...
 				"Core",
-                "MetasoundEditor",
                 "MetasoundFrontend",
 				"MetasoundGraphCore",
 			}
@@ -46,6 +45,11 @@ public class AudioDSPCollection : ModuleRules
 				"SignalProcessing",
 			}
 		);
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("MetasoundEditor");
+		}
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(

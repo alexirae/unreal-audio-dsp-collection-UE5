@@ -12,11 +12,11 @@ namespace DSPProcessing
 
 		void Init(int32 InTransitionTimeInMs, float SampleRate);
 		void SetNewParamValue(float InNewParamValue);
-		FORCEINLINE float GetValue();
+		float GetValue();
 
 	private:
-		FORCEINLINE float SmoothedResult();
-		FORCEINLINE float DirectResult();
+		float SmoothedResult();
+		float DirectResult();
 
 		float Step          = 0.0f;
 		float NewParamValue = 0.0f;
